@@ -140,11 +140,36 @@ function calcDescanso(hist){
   if(!hist||!hist.length) return null;
   const last=hist[hist.length-1];
   if(!last.fechaFin) return null;
-  const libre=new Date(last.fechaFin);
-  libre.setDate(libre.getDate()+(Number(last.diasTrabajados)||0));
+  // Descanso empieza el dia SIGUIENTE al fin del servicio
+  const inicioDescanso=new Date(last.fechaFin);
+  inicioDescanso.setDate(inicioDescanso.getDate()+1);
+  // Fin del descanso = inicio descanso + dias trabajados
+  const finDescanso=new Date(inicioDescanso);
+  finDescanso.setDate(finDescanso.getDate()+(Number(last.diasTrabajados)||0));
   const hoy=new Date();
-  if(hoy<libre) return {enDescanso:true,dias:Math.ceil((libre-hoy)/(864e5)),servicio:last.tipoServicio};
+  if(hoy<finDescanso) return {
+    enDescanso:true,
+    dias:Math.ceil((finDescanso-hoy)/(864e5)),
+    servicio:last.tipoServicio,
+    inicioDescanso:inicioDescanso.toISOString().split("T")[0],
+    finDescanso:finDescanso.toISOString().split("T")[0]
+  };
   return {enDescanso:false};
+}
+
+// Calcula dias trabajados incluyendo dia de inicio (13 al 22 = 10 dias)
+function calcDias(fi,ff){
+  if(!fi||!ff) return 0;
+  const d=Math.round((new Date(ff)-new Date(fi))/(864e5))+1;
+  return Math.max(1,d);
+}
+
+// Calcula fecha disponible (dia siguiente al fin + dias trabajados)
+function calcDisponible(fechaFin,dias){
+  if(!fechaFin||!dias) return "";
+  const d=new Date(fechaFin);
+  d.setDate(d.getDate()+1+Number(dias));
+  return d.toISOString().split("T")[0];
 }
 
 const CSS = `
@@ -418,6 +443,9 @@ export default function App(){
   const [toasts,   setToasts]   = useState([]);
   const [selected2, setSelected2] = useState(new Set()); // multi-select worker IDs
   const [bulkSvcModal, setBulkSvcModal] = useState(false);
+  const [editSvcModal, setEditSvcModal] = useState(false);
+  const [editSvcIdx, setEditSvcIdx] = useState(null);
+  const [editSvcForm, setEditSvcForm] = useState({});
   const [bulkSvcForm, setBulkSvcForm] = useState({tipoServicio:"",fechaInicio:"",fechaFin:"",diasTrabajados:0});
 
   // ── Storage init ──────────────────────────────────────────────────────────
@@ -662,6 +690,48 @@ export default function App(){
     } else {
       setSelected2(new Set(pageData.map(w=>w.id)));
     }
+  }
+
+  function openEditSvc(w, idx){
+    setSelected(w);
+    setEditSvcIdx(idx);
+    setEditSvcForm({...w.historial[idx]});
+    setEditSvcModal(true);
+  }
+
+  function handleEditSvc(){
+    const{tipoServicio,fechaInicio,fechaFin,diasTrabajados}=editSvcForm;
+    if(!tipoServicio||!fechaInicio){ toast("Completa tipo y fecha inicio","error"); return; }
+    const updated=workers.map(w=>{
+      if(w.id!==selected.id) return w;
+      const hist=[...w.historial];
+      hist[editSvcIdx]={tipoServicio,fechaInicio,fechaFin,diasTrabajados:Number(diasTrabajados)};
+      return{...w,historial:hist,tipoServicio};
+    });
+    setWorkers(updated);
+    const updW=updated.find(x=>x.id===selected.id);
+    if(updW) dbSaveWorker(updW).catch(()=>{});
+    audit("edit",`Servicio editado: ${tipoServicio} (${fechaInicio}→${fechaFin||"en curso"})`,selected?.nombre||"");
+    toast("Servicio actualizado ✓");
+    setEditSvcModal(false);
+    // Refresh selected in detail
+    setSelected(updated.find(x=>x.id===selected.id)||selected);
+  }
+
+  function handleDeleteSvc(w, idx){
+    if(!confirm("¿Eliminar este servicio?")) return;
+    const updated=workers.map(x=>{
+      if(x.id!==w.id) return x;
+      const hist=x.historial.filter((_,i)=>i!==idx);
+      const lastSvc=hist.length>0?hist[hist.length-1].tipoServicio:"";
+      return{...x,historial:hist,tipoServicio:lastSvc};
+    });
+    setWorkers(updated);
+    const updW=updated.find(x=>x.id===w.id);
+    if(updW) dbSaveWorker(updW).catch(()=>{});
+    audit("edit",`Servicio eliminado`,w?.nombre||"");
+    toast("Servicio eliminado","error");
+    setSelected(updated.find(x=>x.id===w.id)||selected);
   }
 
   function downloadTemplate(){
@@ -1657,7 +1727,11 @@ export default function App(){
                         <div key={i} style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:"9px 12px",marginBottom:7,fontSize:11}}>
                           <div style={{marginBottom:3}}>{servTag(h.tipoServicio)}</div>
                           <div style={{color:"var(--mu)"}}>Inicio: {h.fechaInicio} · Fin: {h.fechaFin||"En curso"} · Días: <b style={{color:"var(--tx)"}}>{h.diasTrabajados}</b></div>
-                          {h.fechaFin&&<div style={{color:"var(--bl)",marginTop:3}}>Disponible desde: {(()=>{const d=new Date(h.fechaFin);d.setDate(d.getDate()+Number(h.diasTrabajados));return d.toISOString().split("T")[0];})()}</div>}
+                          {h.fechaFin&&<div style={{color:"var(--bl)",marginTop:3}}>
+                            Descanso: {(()=>{const d=new Date(h.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}
+                            {" → "}
+                            Disponible desde: {calcDisponible(h.fechaFin,h.diasTrabajados)}
+                          </div>}
                         </div>
                       ))
                     }
@@ -1704,14 +1778,14 @@ export default function App(){
                   <div className="fg"><label>Fecha Inicio</label><input type="date" value={svcForm.fechaInicio} onChange={e=>{
                     const fi=e.target.value;
                     setSvcForm(f=>{
-                      const dias=f.fechaFin&&fi?Math.max(0,Math.ceil((new Date(f.fechaFin)-new Date(fi))/(864e5))):f.diasTrabajados;
+                      const dias=f.fechaFin&&fi?calcDias(fi,f.fechaFin):f.diasTrabajados;
                       return{...f,fechaInicio:fi,diasTrabajados:dias};
                     });
                   }}/></div>
                   <div className="fg"><label>Fecha Fin</label><input type="date" value={svcForm.fechaFin} onChange={e=>{
                     const ff=e.target.value;
                     setSvcForm(f=>{
-                      const dias=f.fechaInicio&&ff?Math.max(0,Math.ceil((new Date(ff)-new Date(f.fechaInicio))/(864e5))):f.diasTrabajados;
+                      const dias=f.fechaInicio&&ff?calcDias(f.fechaInicio,ff):f.diasTrabajados;
                       return{...f,fechaFin:ff,diasTrabajados:dias};
                     });
                   }}/></div>
@@ -1723,7 +1797,11 @@ export default function App(){
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:1,color:"var(--acc)",marginBottom:5}}>REGLA · 1 día libre por día trabajado</div>
                   <div style={{fontSize:11,color:"var(--mu)"}}>
                     {svcForm.diasTrabajados>0&&svcForm.fechaFin
-                      ?<span style={{color:"var(--bl)"}}>Disponible desde: {(()=>{const d=new Date(svcForm.fechaFin);d.setDate(d.getDate()+Number(svcForm.diasTrabajados));return d.toISOString().split("T")[0];})()}</span>
+                      ?<span style={{color:"var(--bl)"}}>
+                        Inicio descanso: {(()=>{const d=new Date(svcForm.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}
+                        {" · "}
+                        Disponible desde: {calcDisponible(svcForm.fechaFin,svcForm.diasTrabajados)}
+                      </span>
                       :"Ingresa fecha fin y días para calcular disponibilidad."}
                   </div>
                 </div>
@@ -1758,14 +1836,14 @@ export default function App(){
                   <div className="fg"><label>Fecha Inicio</label><input type="date" value={bulkSvcForm.fechaInicio} onChange={e=>{
                     const fi=e.target.value;
                     setBulkSvcForm(f=>{
-                      const dias=f.fechaFin&&fi?Math.max(0,Math.ceil((new Date(f.fechaFin)-new Date(fi))/(864e5))):f.diasTrabajados;
+                      const dias=f.fechaFin&&fi?calcDias(fi,f.fechaFin):f.diasTrabajados;
                       return{...f,fechaInicio:fi,diasTrabajados:dias};
                     });
                   }}/></div>
                   <div className="fg"><label>Fecha Fin</label><input type="date" value={bulkSvcForm.fechaFin} onChange={e=>{
                     const ff=e.target.value;
                     setBulkSvcForm(f=>{
-                      const dias=f.fechaInicio&&ff?Math.max(0,Math.ceil((new Date(ff)-new Date(f.fechaInicio))/(864e5))):f.diasTrabajados;
+                      const dias=f.fechaInicio&&ff?calcDias(f.fechaInicio,ff):f.diasTrabajados;
                       return{...f,fechaFin:ff,diasTrabajados:dias};
                     });
                   }}/></div>
@@ -1776,7 +1854,11 @@ export default function App(){
                 <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:10,marginTop:8,fontSize:11,color:"var(--mu)"}}>
                   <span style={{color:"var(--acc)",fontWeight:700,fontSize:10,letterSpacing:1}}>REGLA · </span>
                   {bulkSvcForm.diasTrabajados>0&&bulkSvcForm.fechaFin
-                    ?<span style={{color:"var(--bl)"}}>Disponible desde: {(()=>{const d=new Date(bulkSvcForm.fechaFin);d.setDate(d.getDate()+Number(bulkSvcForm.diasTrabajados));return d.toISOString().split("T")[0];})()}</span>
+                    ?<span style={{color:"var(--bl)"}}>
+                        Inicio descanso: {(()=>{const d=new Date(bulkSvcForm.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}
+                        {" · "}
+                        Disponible desde: {calcDisponible(bulkSvcForm.fechaFin,bulkSvcForm.diasTrabajados)}
+                      </span>
                     :"1 día libre por día trabajado"}
                 </div>
               </div>
@@ -1805,6 +1887,65 @@ export default function App(){
             </div>
           ))}
         </nav>
+
+        {/* ── Modal Edit Service ── */}
+        {editSvcModal&&selected&&(
+          <div className="ov" onClick={e=>e.target===e.currentTarget&&setEditSvcModal(false)}>
+            <div className="modal" style={{maxWidth:460}}>
+              <div className="mhdr">
+                <div className="mtit">✏️ Editar Servicio</div>
+                <button className="mcls" onClick={()=>setEditSvcModal(false)}>×</button>
+              </div>
+              <div className="mbdy">
+                <div style={{fontWeight:600,marginBottom:14,color:"var(--acc)",fontSize:13}}>{selected.nombre}</div>
+                <div className="fgrid">
+                  <div className="fg full"><label>Tipo de Servicio</label>
+                    <select value={editSvcForm.tipoServicio||""} onChange={e=>setEditSvcForm(f=>({...f,tipoServicio:e.target.value}))}>
+                      <option value="">— Seleccionar —</option>
+                      {SERVICIOS.map(s=><option key={s}>{s}</option>)}
+                    </select>
+                  </div>
+                  <div className="fg"><label>Fecha Inicio</label>
+                    <input type="date" value={editSvcForm.fechaInicio||""} onChange={e=>{
+                      const fi=e.target.value;
+                      setEditSvcForm(f=>{
+                        const dias=f.fechaFin&&fi?calcDias(fi,f.fechaFin):f.diasTrabajados;
+                        return{...f,fechaInicio:fi,diasTrabajados:dias};
+                      });
+                    }}/>
+                  </div>
+                  <div className="fg"><label>Fecha Fin</label>
+                    <input type="date" value={editSvcForm.fechaFin||""} onChange={e=>{
+                      const ff=e.target.value;
+                      setEditSvcForm(f=>{
+                        const dias=f.fechaInicio&&ff?calcDias(f.fechaInicio,ff):f.diasTrabajados;
+                        return{...f,fechaFin:ff,diasTrabajados:dias};
+                      });
+                    }}/>
+                  </div>
+                  <div className="fg full">
+                    <label>Días Trabajados <span style={{fontSize:10,color:"var(--acc)"}}>(calculado automático)</span></label>
+                    <input type="number" min={1} value={editSvcForm.diasTrabajados||0} onChange={e=>setEditSvcForm(f=>({...f,diasTrabajados:e.target.value}))} style={{background:"#fff7ed"}}/>
+                  </div>
+                </div>
+                {editSvcForm.fechaFin&&editSvcForm.diasTrabajados>0&&(
+                  <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:6,padding:10,marginTop:8,fontSize:11}}>
+                    <div style={{fontWeight:700,color:"#15803d",marginBottom:4}}>📅 Cálculo de Descanso</div>
+                    <div style={{color:"#166534"}}>
+                      🛌 Inicio descanso: <b>{(()=>{const d=new Date(editSvcForm.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}</b>
+                      {" · "}
+                      ✅ Disponible desde: <b>{calcDisponible(editSvcForm.fechaFin,editSvcForm.diasTrabajados)}</b>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="mftr">
+                <button className="btn btn-s" onClick={()=>setEditSvcModal(false)}>Cancelar</button>
+                <button className="btn btn-p" onClick={handleEditSvc}>Guardar Cambios</button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="toasts">
           {toasts.map(t=><div key={t.id} className={`tst ${t.type==="error"?"t-err":"t-ok"}`}>{t.type==="error"?"❌":"✅"} {t.msg}</div>)}
