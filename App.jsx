@@ -32,7 +32,16 @@ async function dbSaveWorker(w){
     estado_civil:w.estadoCivil, estado_examen:w.estadoExamen,
     eval_psicologica:w.evalPsicologica, estado_habilitado:w.estadoHabilitado,
     tipo_servicio:w.tipoServicio, obs:w.obs, motivo_accion:w.motivoAccion,
-    origen:w.origen, inductiones:w.inductiones, historial:w.historial||[]
+    origen:w.origen, inductiones:w.inductiones, historial:w.historial||[],
+    banco:w.banco||"", tipo_cuenta:w.tipoCuenta||"", numero_cuenta:w.numeroCuenta||"",
+    certificado_antecedentes:w.certificadoAntecedentes||"",
+    primeros_auxilios:w.primerosAuxilios||"",
+    manejo_extintores:w.manejoExtintores||"",
+    energia_potenciales:w.energiaPotenciales||"",
+    fecha_vencimiento_examen:w.fechaVencimientoExamen||"",
+    bloqueado:w.bloqueado||false,
+    motivo_bloqueo:w.motivoBloqueo||"",
+    observacion_seguimiento:w.observacionSeguimiento||""
   };
   return await sbFetch("/rest/v1/workers", {
     method:"POST", prefer:"resolution=merge-duplicates",
@@ -82,6 +91,7 @@ function estadoBadge(e){
 }
 
 function habBadge(w){
+  if(w.bloqueado)        return <span className="badge rd" style={{background:"rgba(239,68,68,.3)"}}>🚫 BLOQUEADO</span>;
   if(w._enDescanso)      return <span className="badge rd">EN DESCANSO</span>;
   if(w._pendDescanso)    return <span className="badge pu">PEND. DESCANSO</span>;
   if(w.estadoHabilitado==="HABILITADO PARA SUBIR") return <span className="badge gn">HABILITADO</span>;
@@ -359,7 +369,16 @@ export default function App(){
             estadoHabilitado:r.estado_habilitado, tipoServicio:r.tipo_servicio,
             obs:r.obs, motivoAccion:r.motivo_accion, origen:r.origen,
             inductiones:r.inductiones||{Planta:"NO ESTA",CMDIC:"NO ESTA",Bloqueo:"NO ESTA",Puerto:"NO ESTA",Proyecto:"NO ESTA"},
-            historial:r.historial||[]
+            historial:r.historial||[],
+            banco:r.banco||"", tipoCuenta:r.tipo_cuenta||"", numeroCuenta:r.numero_cuenta||"",
+            certificadoAntecedentes:r.certificado_antecedentes||"NO ESTA",
+            primerosAuxilios:r.primeros_auxilios||"NO ESTA",
+            manejoExtintores:r.manejo_extintores||"NO ESTA",
+            energiaPotenciales:r.energia_potenciales||"NO ESTA",
+            fechaVencimientoExamen:r.fecha_vencimiento_examen||"",
+            bloqueado:r.bloqueado||false,
+            motivoBloqueo:r.motivo_bloqueo||"",
+            observacionSeguimiento:r.observacion_seguimiento||"",
           }));
           setWorkers(mapped);
         } else {
@@ -441,10 +460,11 @@ export default function App(){
   const filtered = useMemo(()=>{
     let r=enriched;
     if(search){ const q=search.toLowerCase(); r=r.filter(w=>w.nombre?.toLowerCase().includes(q)||w.rut?.includes(q)||w.ciudad?.toLowerCase().includes(q)||w.correo?.toLowerCase().includes(q)); }
-    if(fHab==="HAB")  r=r.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso);
-    if(fHab==="NOHAB") r=r.filter(w=>w.estadoHabilitado!=="HABILITADO PARA SUBIR");
+    if(fHab==="HAB")  r=r.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado);
+    if(fHab==="NOHAB") r=r.filter(w=>w.estadoHabilitado!=="HABILITADO PARA SUBIR"&&!w.bloqueado);
     if(fHab==="DESC")  r=r.filter(w=>w._enDescanso);
     if(fHab==="PEND")  r=r.filter(w=>w._pendDescanso);
+    if(fHab==="BLOQ")  r=r.filter(w=>w.bloqueado);
     if(fExam!=="ALL")  r=r.filter(w=>w.estadoExamen===fExam);
     if(fSvc!=="ALL")   r=r.filter(w=>w.tipoServicio===fSvc);
     if(fCity!=="ALL")  r=r.filter(w=>w.ciudad===fCity);
@@ -455,19 +475,21 @@ export default function App(){
   const pageData   = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
 
   const kpi = useMemo(()=>({
-    total:   enriched.length,
-    hab:     enriched.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso).length,
-    pend:    enriched.filter(w=>w._pendDescanso).length,
-    vencido: enriched.filter(w=>w.estadoExamen==="VENCIDO").length,
+    total:    enriched.length,
+    hab:      enriched.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado).length,
+    pend:     enriched.filter(w=>w._pendDescanso).length,
+    vencido:  enriched.filter(w=>w.estadoExamen==="VENCIDO").length,
+    bloqueado:enriched.filter(w=>w.bloqueado).length,
   }),[enriched]);
 
   useEffect(()=>{ setPage(1); },[search,fHab,fExam,fSvc,fCity]);
   useEffect(()=>{
     setFHab("ALL");setFExam("ALL");
-    if(view==="habilitados") setFHab("HAB");
-    if(view==="descanso")    setFHab("DESC");
-    if(view==="pendiente")   setFHab("PEND");
-    if(view==="vencidos")    setFExam("VENCIDO");
+    if(view==="habilitados")  setFHab("HAB");
+    if(view==="descanso")     setFHab("DESC");
+    if(view==="pendiente")    setFHab("PEND");
+    if(view==="vencidos")     setFExam("VENCIDO");
+    if(view==="bloqueados")   setFHab("BLOQ");
   },[view]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -717,6 +739,7 @@ export default function App(){
     {id:"pendiente",label:"Pend. Descanso",   icon:"⏳"},
     {id:"descanso", label:"En Descanso",       icon:"🛌"},
     {id:"vencidos", label:"Exám. Vencidos",   icon:"⚠️"},
+    {id:"bloqueados",label:"Bloqueados",       icon:"🚫"},
   ];
   const navAdmin=[
     {id:"audit",label:"Bitácora",  icon:"📋"},
@@ -894,11 +917,12 @@ export default function App(){
 
             {/* ── Workers View ── */}
             {!["audit","users"].includes(view)&&(<>
-              <div className="kpis">
-                <div className="kpi"><div className="kpi-l">Total Personal</div><div className="kpi-v" style={{color:"var(--bl)"}}>{kpi.total}</div><div className="kpi-s">registros en base</div></div>
-                <div className="kpi"><div className="kpi-l">Habilitados</div><div className="kpi-v" style={{color:"var(--gn)"}}>{kpi.hab}</div><div className="kpi-s">listos para programar</div></div>
-                <div className="kpi"><div className="kpi-l">Pend. Descanso</div><div className="kpi-v" style={{color:"var(--pu)"}}>{kpi.pend}</div><div className="kpi-s">servicio en curso</div></div>
-                <div className="kpi"><div className="kpi-l">Exám. Vencidos</div><div className="kpi-v" style={{color:"var(--yw)"}}>{kpi.vencido}</div><div className="kpi-s">requieren renovación</div></div>
+              <div className="kpis" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
+                <div className="kpi"><div className="kpi-l">Total</div><div className="kpi-v" style={{color:"var(--bl)"}}>{kpi.total}</div><div className="kpi-s">registros</div></div>
+                <div className="kpi"><div className="kpi-l">Habilitados</div><div className="kpi-v" style={{color:"var(--gn)"}}>{kpi.hab}</div><div className="kpi-s">para programar</div></div>
+                <div className="kpi"><div className="kpi-l">Pend. Descanso</div><div className="kpi-v" style={{color:"var(--pu)"}}>{kpi.pend}</div><div className="kpi-s">en curso</div></div>
+                <div className="kpi"><div className="kpi-l">Exám. Vencidos</div><div className="kpi-v" style={{color:"var(--yw)"}}>{kpi.vencido}</div><div className="kpi-s">renovar</div></div>
+                <div className="kpi" style={{cursor:"pointer"}} onClick={()=>setFHab("BLOQ")}><div className="kpi-l">Bloqueados</div><div className="kpi-v" style={{color:"var(--rd)"}}>{kpi.bloqueado}</div><div className="kpi-s">sin acceso</div></div>
               </div>
 
               <div className="tbar">
@@ -909,6 +933,7 @@ export default function App(){
                   <option value="NOHAB">❌ No Habilitados</option>
                   <option value="PEND">⏳ Pendiente Descanso</option>
                   <option value="DESC">🛌 En Descanso activo</option>
+                  <option value="BLOQ">🚫 Bloqueados</option>
                 </select>
                 <select className="fsel" value={fExam} onChange={e=>setFExam(e.target.value)}>
                   <option value="ALL">Todos los exámenes</option>
@@ -1016,6 +1041,21 @@ export default function App(){
                     <select {...F("estadoCivil")}><option value="">—</option>{["SOLTERO","CASADO","DIVORCIADO","VIUDO"].map(o=><option key={o}>{o}</option>)}</select>
                   </div>
                   <div className="fg"><label>Observación</label><input {...F("obs")}/></div>
+                  <div className="fg full">
+                    <label>Observaciones Seguimiento</label>
+                    <textarea {...F("observacionSeguimiento")} rows={2} style={{resize:"vertical"}}/>
+                  </div>
+                  <div className="fg full" style={{background:"rgba(239,68,68,.05)",border:"1px solid rgba(239,68,68,.2)",borderRadius:6,padding:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:6}}>
+                      <label style={{color:"var(--rd)",margin:0}}>🚫 BLOQUEO</label>
+                      <input type="checkbox" checked={form.bloqueado||false} onChange={e=>setForm(f=>({...f,bloqueado:e.target.checked}))} style={{width:"auto"}}/>
+                      <span style={{fontSize:11,color:"var(--mu)"}}>Bloquear acceso a servicios</span>
+                    </div>
+                    {form.bloqueado&&<div className="fg" style={{margin:0}}>
+                      <label>Motivo del Bloqueo</label>
+                      <textarea {...F("motivoBloqueo")} rows={2} placeholder="Ej: Evaluación psicológica no recomendable, conducta inapropiada..." style={{resize:"vertical"}}/>
+                    </div>}
+                  </div>
                   <div className="fsec">Habilitación</div>
                   <div className="fg"><label>Estado Examen</label>
                     <select {...F("estadoExamen")}><option value="">—</option>{EXAMENES.map(o=><option key={o}>{o}</option>)}</select>
@@ -1080,8 +1120,10 @@ export default function App(){
                   <button className="mcls" onClick={()=>setModal(null)}>×</button>
                 </div>
                 <div className="mbdy">
+                  {w.bloqueado&&<div className="banner ban-rd" style={{background:"rgba(239,68,68,.15)",borderColor:"rgba(239,68,68,.5)"}}>🚫 TRABAJADOR BLOQUEADO{w.motivoBloqueo?` — ${w.motivoBloqueo}`:""}</div>}
                   {w._enDescanso&&<div className="banner ban-rd">🛌 EN DESCANSO — {w._descanso?.dias} días restantes · Servicio: {w._descanso?.servicio}</div>}
                   {!w._enDescanso&&w._pendDescanso&&<div className="banner ban-pu">⏳ SERVICIO EN CURSO — pendiente completar descanso al finalizar</div>}
+                  {w.observacionSeguimiento&&<div className="banner" style={{background:"rgba(59,130,246,.08)",border:"1px solid rgba(59,130,246,.25)",color:"#93c5fd"}}>📝 {w.observacionSeguimiento}</div>}
                   <div className="dsec">
                     <div className="dsec-t">Estado</div>
                     <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}>
@@ -1258,7 +1300,8 @@ export default function App(){
             {id:"workers",  icon:"👷", label:"PERSONAL"},
             {id:"habilitados",icon:"✅",label:"HAB."},
             {id:"pendiente",icon:"⏳", label:"PEND."},
-            {id:"vencidos", icon:"⚠️", label:"EXÁM."},
+            {id:"vencidos",  icon:"⚠️", label:"EXÁM."},
+            {id:"bloqueados",icon:"🚫", label:"BLOQ."},
             ...(canAdmin?[{id:"audit",icon:"📋",label:"LOG"}]:[]),
           ].map(n=>(
             <div key={n.id} className={`mnav-item${view===n.id?" act":""}`} onClick={()=>setView(n.id)}>
