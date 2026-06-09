@@ -83,30 +83,6 @@ function rolLabel(r){ return r==="admin"?"ADMIN":r==="supervisor"?"SUPERVISOR":"
 function rolCls(r)  { return r==="admin"?"role-admin":r==="supervisor"?"role-sup":"role-viewer"; }
 
 // Verifica los 5 requisitos minimos para un servicio
-function checkRequisitos(w){
-  const examenOk = w.estadoExamen==="VIGENTE";
-  // Eval psicologica: APTO o RECOMENDABLE (con o sin observacion), pero NO si dice NO RECOMENDABLE
-  const evalRaw = (w.evalPsicologica||"").toUpperCase().trim();
-  const evalOk = evalRaw.length>0
-    && !evalRaw.includes("NO RECOMENDABLE")
-    && !evalRaw.includes("PENDIENTE")
-    && (evalRaw==="APTO"
-      || evalRaw.startsWith("RECOMENDABLE")
-      || evalRaw.startsWith("RECOM."));
-  // Inducciones: deben ser exactamente "OK" (sin espacios extra, sin VENCIDO, sin NO ESTA)
-  const cmdic  = (w.inductiones?.CMDIC||"").toString().trim().toUpperCase()==="OK";
-  const planta = (w.inductiones?.Planta||"").toString().trim().toUpperCase()==="OK";
-  const antec  = (w.certificadoAntecedentes||"").toString().trim().toUpperCase()==="OK";
-  return{
-    examen:  {ok:examenOk,  label:"Examen Preocup.",   val:w.estadoExamen||"SIN FECHA"},
-    eval:    {ok:evalOk,    label:"Eval. Psicológica", val:w.evalPsicologica||"—"},
-    cmdic:   {ok:cmdic,     label:"Inducción CMDIC",   val:w.inductiones?.CMDIC||"NO ESTA"},
-    planta:  {ok:planta,    label:"Inducción Planta",  val:w.inductiones?.Planta||"NO ESTA"},
-    antec:   {ok:antec,     label:"Cert. Antecedentes",val:w.certificadoAntecedentes||"NO ESTA"},
-    cumple: examenOk&&evalOk&&cmdic&&planta&&antec,
-  };
-}
-
 function estadoBadge(e){
   if(!e||e==="SIN FECHA") return <span className="badge bg">SIN FECHA</span>;
   if(e==="VIGENTE")    return <span className="badge gn">VIGENTE</span>;
@@ -1459,7 +1435,7 @@ export default function App(){
                               {(()=>{
                                 if(w.bloqueado||w._enDescanso||w._pendDescanso) return null;
                                 const req=checkRequisitos(w);
-                                const faltantes=Object.values(req).filter(r=>r&&typeof r==="object"&&r.label&&!r.ok).length;
+                                const faltantes=req.items.filter(r=>!r.ok).length;
                                 if(faltantes===0) return null;
                                 return <div style={{fontSize:9,color:"#dc2626",marginTop:2,fontWeight:600}}>Faltan {faltantes}</div>;
                               })()}
@@ -1597,9 +1573,9 @@ export default function App(){
                           {req.cumple?"✅ CUMPLE REQUISITOS MÍNIMOS — APTO PARA SERVICIO":"⚠️ NO CUMPLE TODOS LOS REQUISITOS MÍNIMOS"}
                         </div>
                         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
-                          {Object.values(req).filter(r=>typeof r==="object"&&r.label).map((r,i)=>(
+                          {req.items.map((r,i)=>(
                             <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
-                              <span style={{width:16,height:16,borderRadius:50,background:r.ok?"#dcfce7":"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:r.ok?"#15803d":"#dc2626",flexShrink:0}}>{r.ok?"✓":"✗"}</span>
+                              <span style={{width:16,height:16,borderRadius:"50%",background:r.ok?"#dcfce7":"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:r.ok?"#15803d":"#dc2626",flexShrink:0}}>{r.ok?"✓":"✗"}</span>
                               <span style={{color:"#374151",fontWeight:500}}>{r.label}:</span>
                               <span style={{color:r.ok?"#15803d":"#dc2626",fontWeight:600}}>{r.val}</span>
                             </div>
