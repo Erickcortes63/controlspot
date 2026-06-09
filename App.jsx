@@ -82,6 +82,31 @@ const PAGE_SIZE   = 25;
 function rolLabel(r){ return r==="admin"?"ADMIN":r==="supervisor"?"SUPERVISOR":"VISOR"; }
 function rolCls(r)  { return r==="admin"?"role-admin":r==="supervisor"?"role-sup":"role-viewer"; }
 
+// Verifica los 5 requisitos minimos para un servicio
+function checkRequisitos(w){
+  const examenOk = w.estadoExamen==="VIGENTE";
+  // Eval psicologica: APTO o RECOMENDABLE (con o sin observacion), pero NO si dice NO RECOMENDABLE
+  const evalRaw = (w.evalPsicologica||"").toUpperCase().trim();
+  const evalOk = evalRaw.length>0
+    && !evalRaw.includes("NO RECOMENDABLE")
+    && !evalRaw.includes("PENDIENTE")
+    && (evalRaw==="APTO"
+      || evalRaw.startsWith("RECOMENDABLE")
+      || evalRaw.startsWith("RECOM."));
+  // Inducciones: deben ser exactamente "OK" (sin espacios extra, sin VENCIDO, sin NO ESTA)
+  const cmdic  = (w.inductiones?.CMDIC||"").toString().trim().toUpperCase()==="OK";
+  const planta = (w.inductiones?.Planta||"").toString().trim().toUpperCase()==="OK";
+  const antec  = (w.certificadoAntecedentes||"").toString().trim().toUpperCase()==="OK";
+  return{
+    examen:  {ok:examenOk,  label:"Examen Preocup.",   val:w.estadoExamen||"SIN FECHA"},
+    eval:    {ok:evalOk,    label:"Eval. Psicológica", val:w.evalPsicologica||"—"},
+    cmdic:   {ok:cmdic,     label:"Inducción CMDIC",   val:w.inductiones?.CMDIC||"NO ESTA"},
+    planta:  {ok:planta,    label:"Inducción Planta",  val:w.inductiones?.Planta||"NO ESTA"},
+    antec:   {ok:antec,     label:"Cert. Antecedentes",val:w.certificadoAntecedentes||"NO ESTA"},
+    cumple: examenOk&&evalOk&&cmdic&&planta&&antec,
+  };
+}
+
 function estadoBadge(e){
   if(!e||e==="SIN FECHA") return <span className="badge bg">SIN FECHA</span>;
   if(e==="VIGENTE")    return <span className="badge gn">VIGENTE</span>;
@@ -94,7 +119,11 @@ function habBadge(w){
   if(w.bloqueado)        return <span className="badge rd" style={{background:"rgba(239,68,68,.3)"}}>🚫 BLOQUEADO</span>;
   if(w._enDescanso)      return <span className="badge rd">EN DESCANSO</span>;
   if(w._pendDescanso)    return <span className="badge pu">PEND. DESCANSO</span>;
-  if(w.estadoHabilitado==="HABILITADO PARA SUBIR") return <span className="badge gn">HABILITADO</span>;
+  if(w.estadoHabilitado==="HABILITADO PARA SUBIR"){
+    const req=checkRequisitos(w);
+    if(!req.cumple) return <span className="badge yw" title="Habilitado pero faltan requisitos mínimos">⚠️ HAB. INCOMPLETO</span>;
+    return <span className="badge gn">HABILITADO</span>;
+  }
   if(w.estadoHabilitado==="EN REVISIÓN") return <span className="badge yw">EN REVISIÓN</span>;
   return <span className="badge rd">NO HABILITADO</span>;
 }
@@ -110,6 +139,25 @@ function servTag(tipo){
   if(!tipo) return <span className="muted-s">—</span>;
   const cls=tipo==="Parada de Planta"?"s-p":tipo==="ODS"?"s-o":tipo==="Contrato Base"?"s-c":"s-r";
   return <span className={`stag ${cls}`}>{tipo}</span>;
+}
+
+// ── Requisitos mínimos para servicio ────────────────────────────────────────
+function checkRequisitos(w){
+  const examenOk = w.estadoExamen==="VIGENTE";
+  const psicoOk  = ["APTO","RECOMENDABLE","RECOMENDABLE CON OBSERVACION","RECOM. CON OBSERVACION"].includes((w.evalPsicologica||"").toUpperCase().trim());
+  const cmdicOk  = (w.inductiones?.CMDIC||"").toUpperCase()==="OK";
+  const plantaOk = (w.inductiones?.Planta||"").toUpperCase()==="OK";
+  const antecOk  = (w.certificadoAntecedentes||"").toUpperCase()==="OK";
+  return{
+    cumple: examenOk&&psicoOk&&cmdicOk&&plantaOk&&antecOk,
+    items:[
+      {label:"Examen Preocupacional", ok:examenOk,  val:w.estadoExamen||"SIN FECHA"},
+      {label:"Eval. Psicológica",     ok:psicoOk,   val:w.evalPsicologica||"SIN EVALUAR"},
+      {label:"Inducción CMDIC",       ok:cmdicOk,   val:w.inductiones?.CMDIC||"NO ESTA"},
+      {label:"Inducción Planta",      ok:plantaOk,  val:w.inductiones?.Planta||"NO ESTA"},
+      {label:"Cert. Antecedentes",    ok:antecOk,   val:w.certificadoAntecedentes||"NO ESTA"},
+    ]
+  };
 }
 
 function calcDescanso(hist){
@@ -169,7 +217,7 @@ const CSS = `
   th{background:#f8fafc;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mu);text-transform:uppercase;border-bottom:1px solid var(--bor);white-space:nowrap;}
   td{padding:8px 9px;border-bottom:1px solid rgba(48,54,61,.4);}
   tr:hover td{background:rgba(255,255,255,.025);}
-  .nm{font-weight:600;font-size:12px;}
+  .nm{font-weight:600;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
   .sm{font-size:10px;color:var(--mu);}
   /* Badges */
   .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;}
@@ -241,7 +289,7 @@ const CSS = `
   .dash-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
   .dash-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;letter-spacing:2px;color:var(--tx);}
   .dash-sub{font-size:12px;color:var(--mu);margin-top:2px;}
-  .dash-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+  .dash-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
   .dash-kpi{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;transition:.15s;cursor:default;}
   .dash-kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
   .dash-kpi-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;}
@@ -334,9 +382,7 @@ const CSS = `
     .btn{padding:6px 10px;font-size:11px;}
     .card{padding:12px;}
     /* Hide less important table columns on mobile */
-    th:nth-child(4),td:nth-child(4),
-    th:nth-child(6),td:nth-child(6),
-    th:nth-child(10),td:nth-child(10){display:none;}
+    /* tabla con scroll horizontal en mobile, sin ocultar columnas */
     .modal{max-width:100%!important;margin:0;border-radius:10px 10px 0 0;position:fixed;bottom:0;max-height:85vh;}
     .ov{align-items:flex-end;padding:0;}
     .fgrid{grid-template-columns:1fr!important;}
@@ -506,11 +552,12 @@ export default function App(){
   const filtered = useMemo(()=>{
     let r=enriched;
     if(search){ const q=search.toLowerCase(); r=r.filter(w=>w.nombre?.toLowerCase().includes(q)||w.rut?.includes(q)||w.ciudad?.toLowerCase().includes(q)||w.correo?.toLowerCase().includes(q)); }
-    if(fHab==="HAB")  r=r.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado);
-    if(fHab==="NOHAB") r=r.filter(w=>w.estadoHabilitado!=="HABILITADO PARA SUBIR"&&!w.bloqueado);
-    if(fHab==="DESC")  r=r.filter(w=>w._enDescanso);
-    if(fHab==="PEND")  r=r.filter(w=>w._pendDescanso);
-    if(fHab==="BLOQ")  r=r.filter(w=>w.bloqueado);
+    if(fHab==="HAB")     r=r.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado&&checkRequisitos(w).cumple);
+    if(fHab==="HAB_INC") r=r.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado&&!checkRequisitos(w).cumple);
+    if(fHab==="NOHAB")   r=r.filter(w=>w.estadoHabilitado!=="HABILITADO PARA SUBIR"&&!w.bloqueado);
+    if(fHab==="DESC")    r=r.filter(w=>w._enDescanso);
+    if(fHab==="PEND")    r=r.filter(w=>w._pendDescanso);
+    if(fHab==="BLOQ")    r=r.filter(w=>w.bloqueado);
     if(fExam!=="ALL")  r=r.filter(w=>w.estadoExamen===fExam);
     if(fSvc!=="ALL")   r=r.filter(w=>w.tipoServicio===fSvc);
     if(fCity!=="ALL")  r=r.filter(w=>w.ciudad===fCity);
@@ -522,7 +569,8 @@ export default function App(){
 
   const kpi = useMemo(()=>({
     total:    enriched.length,
-    hab:      enriched.filter(w=>w.estadoHabilitado==="HABILITADO PARA SUBIR"&&!w._pendDescanso&&!w.bloqueado).length,
+    hab:      enriched.filter(w=>checkRequisitos(w).cumple&&!w._pendDescanso&&!w.bloqueado).length,
+    noApto:   enriched.filter(w=>!checkRequisitos(w).cumple&&!w.bloqueado&&!w._pendDescanso).length,
     pend:     enriched.filter(w=>w._pendDescanso).length,
     vencido:  enriched.filter(w=>w.estadoExamen==="VENCIDO").length,
     bloqueado:enriched.filter(w=>w.bloqueado).length,
@@ -531,7 +579,7 @@ export default function App(){
   useEffect(()=>{ setPage(1); },[search,fHab,fExam,fSvc,fCity]);
   useEffect(()=>{
     setFHab("ALL");setFExam("ALL");
-    if(view==="habilitados")  setFHab("HAB");
+    if(view==="habilitados")  setFHab("HAB");  // aptos con 5 requisitos
     if(view==="descanso")     setFHab("DESC");
     if(view==="pendiente")    setFHab("PEND");
     if(view==="vencidos")     setFExam("VENCIDO");
@@ -944,7 +992,7 @@ export default function App(){
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div className="pills">
-              <div className="pill"><span className="dot" style={{background:"var(--gn)"}}/>HAB: {kpi.hab}</div>
+              <div className="pill"><span className="dot" style={{background:"var(--gn)"}}/>APTOS: {kpi.hab}</div>
               <div className="pill"><span className="dot" style={{background:"var(--pu)"}}/>PEND: {kpi.pend}</div>
               <div className="pill"><span className="dot" style={{background:"var(--yw)"}}/>VENC: {kpi.vencido}</div>
               <div className="pill"><span className="dot" style={{background:"var(--bl)"}}/>TOTAL: {kpi.total}</div>
@@ -1099,7 +1147,7 @@ export default function App(){
 
             {/* ── Dashboard View ── */}
             {view==="dashboard"&&(()=>{
-              const enRevision=enriched.filter(w=>w.estadoHabilitado==="EN REVISIÓN"&&!w.bloqueado).length;
+              const enRevision=enriched.filter(w=>!checkRequisitos(w).cumple&&!w.bloqueado&&!w._pendDescanso).length;
               const noHab=enriched.filter(w=>w.estadoHabilitado==="NO HABILITADO"&&!w.bloqueado).length;
               const vigente=enriched.filter(w=>w.estadoExamen==="VIGENTE").length;
               const vencido=enriched.filter(w=>w.estadoExamen==="VENCIDO").length;
@@ -1127,13 +1175,14 @@ export default function App(){
                 {/* KPI Strip */}
                 <div className="dash-kpis">
                   {[
-                    {icon:"✅",val:kpi.hab,      label:"Habilitados",     sub:`${pct(kpi.hab,enriched.length)}% del total`,    color:"#16a34a"},
+                    {icon:"✅",val:kpi.hab,      label:"Hab. Completos",  sub:`Cumplen 5 requisitos`,                          color:"#16a34a"},
+                    {icon:"⚠️",val:kpi.habInc,   label:"Hab. Incompleto", sub:`Les falta algún req.`,                          color:"#ca8a04"},
                     {icon:"🔍",val:enRevision,   label:"En Revisión",     sub:"Pendiente evaluación",                          color:"#ca8a04"},
                     {icon:"❌",val:noHab,        label:"No Habilitados",  sub:"Requieren acción",                              color:"#dc2626"},
                     {icon:"⏳",val:kpi.pend,     label:"Pend. Descanso",  sub:"Servicio en curso",                             color:"#f97316"},
                     {icon:"🚫",val:kpi.bloqueado,label:"Bloqueados",      sub:"Sin acceso a servicios",                        color:"#7c3aed"},
                   ].map((k,i)=>(
-                    <div className="dash-kpi" key={i} onClick={()=>{setView("workers");setFHab(["HAB","NOHAB","NOHAB","PEND","BLOQ"][i]);}}>
+                    <div className="dash-kpi" key={i} onClick={()=>{setView("workers");setFHab(["HAB","HAB_INC","NOHAB","PEND","BLOQ"][i]);}}>
                       <div className="dash-kpi-accent" style={{background:k.color}}/>
                       <div className="dash-kpi-icon">{k.icon}</div>
                       <div className="dash-kpi-val" style={{color:k.color}}>{k.val}</div>
@@ -1150,13 +1199,12 @@ export default function App(){
                     subtitle="Distribución del personal por estado"
                     accentColor="#16a34a"
                     data={[
-                      {l:"Habilitados",    v:kpi.hab},
-                      {l:"En Revisión",    v:enRevision},
-                      {l:"No Habilitados", v:noHab},
-                      {l:"Bloqueados",     v:kpi.bloqueado},
-                      {l:"Pend. Descanso", v:kpi.pend},
+                      {l:"Aptos",           v:kpi.hab},
+                      {l:"No Aptos",        v:kpi.noApto},
+                      {l:"Pend. Descanso",  v:kpi.pend},
+                      {l:"Bloqueados",      v:kpi.bloqueado},
                     ].filter(d=>d.v>0)}
-                    colors={["#16a34a","#ca8a04","#dc2626","#7c3aed","#f97316"]}
+                    colors={["#16a34a","#dc2626","#f97316","#7c3aed"]}
                   />
                   <DonutChart
                     title="Estado de Exámenes"
@@ -1171,11 +1219,14 @@ export default function App(){
                     colors={["#16a34a","#ca8a04","#dc2626","#94a3b8"]}
                   />
                   <DonutChart
-                    title="Servicios Asignados"
-                    subtitle="Distribución por tipo de servicio"
-                    accentColor="#f97316"
-                    data={SERVICIOS.map(s=>({l:s,v:enriched.filter(w=>w.tipoServicio===s).length})).filter(d=>d.v>0)}
-                    colors={["#f97316","#3b82f6","#7c3aed","#16a34a"]}
+                    title="Requisitos Mínimos"
+                    subtitle="Trabajadores que cumplen los 5 requisitos"
+                    accentColor="#16a34a"
+                    data={[
+                      {l:"Cumple todos",    v:enriched.filter(w=>checkRequisitos(w).cumple).length},
+                      {l:"Incompleto",      v:enriched.filter(w=>!checkRequisitos(w).cumple).length},
+                    ]}
+                    colors={["#16a34a","#dc2626"]}
                   />
                 </div>
 
@@ -1223,7 +1274,42 @@ export default function App(){
                   />
                 </div>
 
-                {/* Row 4: Eval Psicológica */}
+                {/* Row 4: Requisitos Minimos */}
+                <div className="chart-wrap" style={{borderTop:"3px solid #16a34a",marginBottom:16}}>
+                  <div className="chart-title">Requisitos Mínimos para Servicio</div>
+                  <div className="chart-subtitle">Trabajadores que cumplen cada requisito individual</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:12,marginTop:8}}>
+                    {[
+                      {l:"Examen Vigente",         v:enriched.filter(w=>w.estadoExamen==="VIGENTE").length,       color:"#3b82f6"},
+                      {l:"Eval. Psicológica OK",   v:enriched.filter(w=>["APTO","RECOMENDABLE"].some(x=>(w.evalPsicologica||"").toUpperCase().includes(x))).length, color:"#7c3aed"},
+                      {l:"Inducción CMDIC",        v:enriched.filter(w=>w.inductiones?.CMDIC==="OK").length,       color:"#f97316"},
+                      {l:"Inducción Planta",       v:enriched.filter(w=>w.inductiones?.Planta==="OK").length,      color:"#ca8a04"},
+                      {l:"Cert. Antecedentes",     v:enriched.filter(w=>w.certificadoAntecedentes==="OK").length,  color:"#16a34a"},
+                    ].map((r,i)=>{
+                      const pct2=Math.round(r.v/enriched.length*100);
+                      return(
+                        <div key={i} style={{textAlign:"center"}}>
+                          <div style={{background:"#f8fafc",border:"1px solid #e2e8f0",borderRadius:8,padding:"10px 8px",marginBottom:6}}>
+                            <div style={{fontSize:22,fontWeight:900,color:r.color,lineHeight:1}}>{r.v}</div>
+                            <div style={{fontSize:9,color:"#64748b",marginTop:2}}>{pct2}% del total</div>
+                          </div>
+                          <div style={{background:"#f1f5f9",borderRadius:20,height:6,overflow:"hidden",marginBottom:4}}>
+                            <div style={{height:"100%",background:r.color,borderRadius:20,width:`${pct2}%`}}/>
+                          </div>
+                          <div style={{fontSize:9,color:"#64748b",fontWeight:600,lineHeight:1.3}}>{r.l}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{marginTop:14,padding:"10px 14px",background:kpi.hab>0?"#f0fdf4":"#fff7ed",border:`1px solid ${kpi.hab>0?"#86efac":"#fed7aa"}`,borderRadius:6,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:12,fontWeight:700,color:kpi.hab>0?"#15803d":"#c2410c"}}>
+                      {kpi.hab>0?`✅ ${kpi.hab} trabajadores cumplen los 5 requisitos mínimos`:`⚠️ Ningún trabajador cumple los 5 requisitos mínimos`}
+                    </span>
+                    <span style={{fontSize:11,color:"#64748b"}}>{Math.round(kpi.hab/enriched.length*100)}% del total</span>
+                  </div>
+                </div>
+
+                {/* Row 5: Eval Psicológica */}
                 <div className="charts-grid">
                   <BarChart
                     title="Evaluación Psicológica"
@@ -1296,7 +1382,8 @@ export default function App(){
                 <input className="srch" placeholder="🔍 Nombre, RUT, ciudad, correo…" value={search} onChange={e=>setSearch(e.target.value)}/>
                 <select className="fsel" value={fHab} onChange={e=>setFHab(e.target.value)}>
                   <option value="ALL">Todos los estados</option>
-                  <option value="HAB">✅ Habilitados</option>
+                  <option value="HAB">✅ Habilitados (completos)</option>
+                  <option value="HAB_INC">⚠️ Hab. incompletos</option>
                   <option value="NOHAB">❌ No Habilitados</option>
                   <option value="PEND">⏳ Pendiente Descanso</option>
                   <option value="DESC">🛌 En Descanso activo</option>
@@ -1343,11 +1430,11 @@ export default function App(){
                       <th style={{width:32}}><input type="checkbox" onChange={toggleSelectAll} checked={selected2.size===pageData.length&&pageData.length>0} style={{cursor:"pointer"}}/></th>
                       <th>#</th><th>Nombre</th><th>RUT</th><th>Ciudad</th>
                       <th>Examen</th><th>Eval.Psic</th><th>Inducciones</th>
-                      <th>Servicio</th><th>Estado</th><th>Motivo</th><th></th>
+                      <th>Servicio</th><th>Estado Hab.</th><th>Apto</th><th>Motivo</th><th></th>
                     </tr></thead>
                     <tbody>
                       {pageData.length===0
-                        ?<tr><td colSpan={11}><div className="empty">🔍 Sin resultados</div></td></tr>
+                        ?<tr><td colSpan={13}><div className="empty">🔍 Sin resultados</div></td></tr>
                         :pageData.map((w,idx)=>(
                           <tr key={w.id} style={{background:selected2.has(w.id)?"rgba(249,115,22,.06)":""}}>
                             <td><input type="checkbox" checked={selected2.has(w.id)} onChange={()=>toggleSelect(w.id)} style={{cursor:"pointer"}}/></td>
@@ -1362,7 +1449,21 @@ export default function App(){
                             <td><div className="mc" title={w.evalPsicologica}>{w.evalPsicologica||"—"}</div></td>
                             <td><div className="idots">{INDUCTIONES.map(k=>indDot(w.inductiones?.[k],k))}</div></td>
                             <td>{servTag(w.tipoServicio)}</td>
-                            <td>{habBadge(w)}</td>
+                            <td>
+                              <span className={`badge ${w.estadoHabilitado==="HABILITADO PARA SUBIR"?"gn":w.estadoHabilitado==="EN REVISIÓN"?"yw":"bg"}`} style={{fontSize:9}}>
+                                {w.estadoHabilitado==="HABILITADO PARA SUBIR"?"HAB. SUBIR":w.estadoHabilitado==="EN REVISIÓN"?"EN REVISIÓN":w.estadoHabilitado||"—"}
+                              </span>
+                            </td>
+                            <td>
+                              {habBadge(w)}
+                              {(()=>{
+                                if(w.bloqueado||w._enDescanso||w._pendDescanso) return null;
+                                const req=checkRequisitos(w);
+                                const faltantes=Object.values(req).filter(r=>r&&typeof r==="object"&&r.label&&!r.ok).length;
+                                if(faltantes===0) return null;
+                                return <div style={{fontSize:9,color:"#dc2626",marginTop:2,fontWeight:600}}>Faltan {faltantes}</div>;
+                              })()}
+                            </td>
                             <td><div className="mc" title={w.motivoAccion}>{w.motivoAccion||"—"}</div></td>
                             <td>
                               <div style={{display:"flex",gap:3,whiteSpace:"nowrap"}}>
@@ -1487,7 +1588,26 @@ export default function App(){
                   <button className="mcls" onClick={()=>setModal(null)}>×</button>
                 </div>
                 <div className="mbdy">
-                  {w.bloqueado&&<div className="banner ban-rd" style={{background:"rgba(239,68,68,.15)",borderColor:"rgba(239,68,68,.5)"}}>🚫 TRABAJADOR BLOQUEADO{w.motivoBloqueo?` — ${w.motivoBloqueo}`:""}</div>}
+                  {w.bloqueado&&<div className="banner ban-rd" style={{background:"#fee2e2",borderColor:"#fca5a5",color:"#991b1b"}}>🚫 TRABAJADOR BLOQUEADO{w.motivoBloqueo?` — ${w.motivoBloqueo}`:""}</div>}
+                  {(()=>{
+                    const req=checkRequisitos(w);
+                    return(
+                      <div style={{background:req.cumple?"#f0fdf4":"#fff7ed",border:`1px solid ${req.cumple?"#86efac":"#fed7aa"}`,borderRadius:6,padding:"10px 14px",marginBottom:12}}>
+                        <div style={{fontWeight:700,fontSize:12,color:req.cumple?"#15803d":"#c2410c",marginBottom:8}}>
+                          {req.cumple?"✅ CUMPLE REQUISITOS MÍNIMOS — APTO PARA SERVICIO":"⚠️ NO CUMPLE TODOS LOS REQUISITOS MÍNIMOS"}
+                        </div>
+                        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>
+                          {Object.values(req).filter(r=>typeof r==="object"&&r.label).map((r,i)=>(
+                            <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
+                              <span style={{width:16,height:16,borderRadius:50,background:r.ok?"#dcfce7":"#fee2e2",display:"flex",alignItems:"center",justifyContent:"center",fontSize:9,fontWeight:700,color:r.ok?"#15803d":"#dc2626",flexShrink:0}}>{r.ok?"✓":"✗"}</span>
+                              <span style={{color:"#374151",fontWeight:500}}>{r.label}:</span>
+                              <span style={{color:r.ok?"#15803d":"#dc2626",fontWeight:600}}>{r.val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                   {w._enDescanso&&<div className="banner ban-rd">🛌 EN DESCANSO — {w._descanso?.dias} días restantes · Servicio: {w._descanso?.servicio}</div>}
                   {!w._enDescanso&&w._pendDescanso&&<div className="banner ban-pu">⏳ SERVICIO EN CURSO — pendiente completar descanso al finalizar</div>}
                   {w.observacionSeguimiento&&<div className="banner" style={{background:"rgba(59,130,246,.08)",border:"1px solid rgba(59,130,246,.25)",color:"#93c5fd"}}>📝 {w.observacionSeguimiento}</div>}
@@ -1499,7 +1619,26 @@ export default function App(){
                       {w.obs&&<span className="badge yw">{w.obs}</span>}
                       {w.registroDuplicado==="DUPLICADO RUT"&&<span className="badge or">DUPLICADO RUT</span>}
                     </div>
-                    {w.motivoAccion&&<div style={{fontSize:11,color:"var(--acc)",background:"rgba(249,115,22,.07)",border:"1px solid rgba(249,115,22,.2)",borderRadius:5,padding:"6px 10px"}}>📌 {w.motivoAccion}</div>}
+                    {w.motivoAccion&&<div style={{fontSize:11,color:"var(--acc)",background:"rgba(249,115,22,.07)",border:"1px solid rgba(249,115,22,.2)",borderRadius:5,padding:"6px 10px",marginBottom:8}}>📌 {w.motivoAccion}</div>}
+                    {(()=>{
+                      const req=checkRequisitos(w);
+                      return(
+                        <div style={{background:req.cumple?"#f0fdf4":"#fef9c3",border:`1px solid ${req.cumple?"#86efac":"#fde047"}`,borderRadius:6,padding:"10px 12px"}}>
+                          <div style={{fontSize:11,fontWeight:700,marginBottom:8,color:req.cumple?"#15803d":"#854d0e",letterSpacing:.5}}>
+                            {req.cumple?"✅ CUMPLE TODOS LOS REQUISITOS MÍNIMOS":"⚠️ REQUISITOS MÍNIMOS INCOMPLETOS"}
+                          </div>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 16px"}}>
+                            {req.items.map((r,i)=>(
+                              <div key={i} style={{display:"flex",alignItems:"center",gap:6,fontSize:11}}>
+                                <span style={{fontSize:13}}>{r.ok?"✅":"❌"}</span>
+                                <span style={{fontWeight:600,color:"#1e293b"}}>{r.label}</span>
+                                <span style={{color:r.ok?"#16a34a":"#dc2626",marginLeft:"auto",fontWeight:600,fontSize:10}}>{r.val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                   <div className="dsec">
                     <div className="dsec-t">Datos Personales</div>
@@ -1567,7 +1706,19 @@ export default function App(){
                 <button className="mcls" onClick={()=>setModal(null)}>×</button>
               </div>
               <div className="mbdy">
-                <div style={{fontWeight:600,marginBottom:14,color:"var(--acc)"}}>{selected.nombre}</div>
+                <div style={{fontWeight:600,marginBottom:8,color:"var(--acc)"}}>{selected.nombre}</div>
+              {(()=>{
+                const req=checkRequisitos(selected);
+                if(!req.cumple) return(
+                  <div style={{background:"#fef9c3",border:"1px solid #fde047",borderRadius:6,padding:"8px 12px",marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:700,color:"#854d0e",marginBottom:4}}>⚠️ Este trabajador NO cumple todos los requisitos mínimos:</div>
+                    {req.items.filter(r=>!r.ok).map((r,i)=>(
+                      <div key={i} style={{fontSize:11,color:"#dc2626"}}>❌ {r.label}: <b>{r.val}</b></div>
+                    ))}
+                  </div>
+                );
+                return <div style={{background:"#f0fdf4",border:"1px solid #86efac",borderRadius:6,padding:"6px 12px",marginBottom:12,fontSize:11,color:"#15803d",fontWeight:600}}>✅ Cumple todos los requisitos mínimos</div>;
+              })()}
                 <div className="fgrid">
                   <div className="fg full"><label>Tipo de Servicio</label>
                     <select value={svcForm.tipoServicio} onChange={e=>setSvcForm(f=>({...f,tipoServicio:e.target.value}))}>
