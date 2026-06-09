@@ -125,16 +125,16 @@ function calcDescanso(hist){
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;500;600&display=swap');
-  :root{--bg:#0d1117;--sur:#161b22;--bor:#30363d;--acc:#f97316;--bl:#3b82f6;--gn:#22c55e;--rd:#ef4444;--yw:#eab308;--pu:#a855f7;--mu:#8b949e;--tx:#e6edf3;}
+  :root{--bg:#f0f4f8;--sur:#ffffff;--bor:#e2e8f0;--acc:#f97316;--bl:#3b82f6;--gn:#16a34a;--rd:#dc2626;--yw:#ca8a04;--pu:#7c3aed;--mu:#64748b;--tx:#1e293b;}
   *{box-sizing:border-box;margin:0;padding:0;}
   body{background:var(--bg);color:var(--tx);font-family:'Barlow',sans-serif;font-size:13px;}
   /* Layout */
   .wrap{display:flex;flex-direction:column;min-height:100vh;}
-  .topbar{background:var(--sur);border-bottom:2px solid var(--acc);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
+  .topbar{background:var(--sur);border-bottom:2px solid var(--acc);box-shadow:0 1px 4px rgba(0,0,0,.08);padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
   .brand{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:20px;letter-spacing:2px;}
   .brand span{color:var(--acc);}
   .body{display:flex;flex:1;overflow:hidden;}
-  .sidebar{width:188px;background:var(--sur);border-right:1px solid var(--bor);display:flex;flex-direction:column;padding:10px 0;overflow-y:auto;}
+  .sidebar{width:188px;background:#fff;border-right:1px solid var(--bor);display:flex;flex-direction:column;padding:10px 0;overflow-y:auto;box-shadow:1px 0 4px rgba(0,0,0,.04);}
   .main{flex:1;overflow-y:auto;padding:18px;}
   /* Nav */
   .ni{display:flex;align-items:center;gap:8px;padding:9px 16px;font-size:12px;font-weight:500;color:var(--mu);cursor:pointer;border-left:3px solid transparent;transition:.12s;}
@@ -150,9 +150,9 @@ const CSS = `
   .kpi-s{font-size:10px;color:var(--mu);margin-top:2px;}
   /* Toolbar */
   .tbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;}
-  .srch{flex:1;min-width:180px;background:#0d1117;border:1px solid var(--bor);border-radius:6px;padding:7px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;}
+  .srch{flex:1;min-width:180px;background:#f8fafc;border:1px solid var(--bor);border-radius:6px;padding:7px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;}
   .srch:focus{border-color:var(--acc);}
-  select.fsel{background:#0d1117;border:1px solid var(--bor);border-radius:6px;padding:7px 9px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;cursor:pointer;}
+  select.fsel{background:#f8fafc;border:1px solid var(--bor);border-radius:6px;padding:7px 9px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;cursor:pointer;}
   select.fsel:focus{border-color:var(--bl);}
   /* Buttons */
   .btn{padding:7px 13px;border-radius:6px;border:none;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:.12s;white-space:nowrap;}
@@ -166,32 +166,32 @@ const CSS = `
   /* Table */
   .tw{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;}
-  th{background:#0d1117;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mu);text-transform:uppercase;border-bottom:1px solid var(--bor);white-space:nowrap;}
+  th{background:#f8fafc;padding:7px 9px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mu);text-transform:uppercase;border-bottom:1px solid var(--bor);white-space:nowrap;}
   td{padding:8px 9px;border-bottom:1px solid rgba(48,54,61,.4);}
   tr:hover td{background:rgba(255,255,255,.025);}
   .nm{font-weight:600;font-size:12px;}
   .sm{font-size:10px;color:var(--mu);}
   /* Badges */
   .badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap;}
-  .gn{background:rgba(34,197,94,.15);color:var(--gn);border:1px solid rgba(34,197,94,.3);}
-  .rd{background:rgba(239,68,68,.15);color:var(--rd);border:1px solid rgba(239,68,68,.3);}
-  .yw{background:rgba(234,179,8,.15);color:var(--yw);border:1px solid rgba(234,179,8,.3);}
-  .bl{background:rgba(59,130,246,.15);color:var(--bl);border:1px solid rgba(59,130,246,.3);}
-  .bg{background:rgba(139,148,158,.1);color:var(--mu);border:1px solid rgba(139,148,158,.2);}
-  .pu{background:rgba(168,85,247,.15);color:var(--pu);border:1px solid rgba(168,85,247,.3);}
-  .or{background:rgba(249,115,22,.15);color:var(--acc);border:1px solid rgba(249,115,22,.3);}
+  .gn{background:#dcfce7;color:var(--gn);border:1px solid #86efac;}
+  .rd{background:#fee2e2;color:var(--rd);border:1px solid #fca5a5;}
+  .yw{background:#fef9c3;color:var(--yw);border:1px solid #fde047;}
+  .bl{background:#dbeafe;color:var(--bl);border:1px solid #93c5fd;}
+  .bg{background:#f1f5f9;color:var(--mu);border:1px solid #cbd5e1;}
+  .pu{background:#ede9fe;color:var(--pu);border:1px solid #c4b5fd;}
+  .or{background:#ffedd5;color:var(--acc);border:1px solid #fdba74;}
   /* Induction dots */
   .idots{display:flex;gap:2px;}
   .idot{width:13px;height:13px;border-radius:2px;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700;}
-  .i-ok{background:rgba(34,197,94,.2);color:var(--gn);}
-  .i-no{background:rgba(239,68,68,.2);color:var(--rd);}
-  .i-warn{background:rgba(234,179,8,.2);color:var(--yw);}
+  .i-ok{background:#dcfce7;color:var(--gn);}
+  .i-no{background:#fee2e2;color:var(--rd);}
+  .i-warn{background:#fef9c3;color:var(--yw);}
   /* Service tags */
   .stag{display:inline-flex;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;}
-  .s-p{background:rgba(249,115,22,.15);color:var(--acc);}
-  .s-o{background:rgba(59,130,246,.15);color:var(--bl);}
-  .s-r{background:rgba(168,85,247,.15);color:var(--pu);}
-  .s-c{background:rgba(34,197,94,.15);color:var(--gn);}
+  .s-p{background:#ffedd5;color:#c2410c;}
+  .s-o{background:#dbeafe;color:#1d4ed8;}
+  .s-r{background:#ede9fe;color:#6d28d9;}
+  .s-c{background:#dcfce7;color:#15803d;}
   .muted-s{color:var(--mu);font-size:11px;}
   /* Pagination */
   .pag{display:flex;align-items:center;gap:5px;justify-content:flex-end;margin-top:12px;}
@@ -212,31 +212,77 @@ const CSS = `
   .fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   .full{grid-column:1/-1;}
   label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--mu);text-transform:uppercase;}
-  input,select,textarea{background:#0d1117;border:1px solid var(--bor);border-radius:6px;padding:7px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;transition:.12s;width:100%;}
+  input,select,textarea{background:#f8fafc;border:1px solid var(--bor);border-radius:6px;padding:7px 10px;color:var(--tx);font-size:12px;font-family:inherit;outline:none;transition:.12s;width:100%;}
   input:focus,select:focus,textarea:focus{border-color:var(--acc);}
   .fsec{grid-column:1/-1;padding:10px 0 3px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--acc);text-transform:uppercase;border-bottom:1px solid var(--bor);margin-bottom:2px;}
   /* Login */
-  .lw{min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;}
-  .lb{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:38px 34px;width:100%;max-width:360px;}
+  .lw{min-height:100vh;background:linear-gradient(135deg,#f0f4f8 0%,#e2e8f0 100%);display:flex;align-items:center;justify-content:center;}
+  .lb{background:var(--sur);border:1px solid var(--bor);border-radius:12px;padding:38px 34px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.10);}
   .lbrand{font-family:'Barlow Condensed',sans-serif;font-weight:900;font-size:28px;letter-spacing:3px;text-align:center;margin-bottom:4px;}
   .lbrand span{color:var(--acc);}
   .lsub{text-align:center;font-size:11px;color:var(--mu);letter-spacing:1px;margin-bottom:26px;}
   .lerr{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:8px;font-size:12px;color:#fca5a5;margin-bottom:12px;text-align:center;}
   .lbtn{width:100%;padding:10px;background:var(--acc);color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:1px;margin-top:4px;}
   .lbtn:hover{background:#ea6c0a;}
-  .lhint{margin-top:18px;padding:12px;background:#0d1117;border-radius:6px;font-size:10px;color:var(--mu);line-height:1.9;}
+  .lhint{margin-top:18px;padding:12px;background:#f8fafc;border-radius:6px;font-size:10px;color:var(--mu);line-height:1.9;}
   .lhint b{font-size:10px;color:var(--mu);letter-spacing:1px;display:block;margin-bottom:2px;}
   /* User chip */
-  .uchip{display:flex;align-items:center;gap:7px;background:#0d1117;border:1px solid var(--bor);border-radius:6px;padding:4px 10px;font-size:12px;}
+  .uchip{display:flex;align-items:center;gap:7px;background:#f8fafc;border:1px solid var(--bor);border-radius:6px;padding:4px 10px;font-size:12px;}
   .uavt{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
   .role-admin{background:rgba(249,115,22,.2);color:var(--acc);}
   .role-sup{background:rgba(59,130,246,.2);color:var(--bl);}
   .role-viewer{background:rgba(139,148,158,.15);color:var(--mu);}
   /* Stats pills */
   .pills{display:flex;gap:8px;flex-wrap:wrap;}
-  .pill{background:#0d1117;border:1px solid var(--bor);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;letter-spacing:.5px;display:flex;align-items:center;gap:5px;}
+  .pill{background:#f8fafc;border:1px solid var(--bor);border-radius:5px;padding:3px 9px;font-size:11px;font-weight:600;letter-spacing:.5px;display:flex;align-items:center;gap:5px;}
   .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
   /* Audit */
+  /* ── Dashboard ── */
+  .dash-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+  .dash-title{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:900;letter-spacing:2px;color:var(--tx);}
+  .dash-sub{font-size:12px;color:var(--mu);margin-top:2px;}
+  .dash-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+  .dash-kpi{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;transition:.15s;cursor:default;}
+  .dash-kpi:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);transform:translateY(-1px);}
+  .dash-kpi-accent{position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;}
+  .dash-kpi-icon{font-size:28px;margin-bottom:6px;line-height:1;}
+  .dash-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:42px;font-weight:900;line-height:1;margin-bottom:2px;}
+  .dash-kpi-label{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase;}
+  .dash-kpi-sub{font-size:10px;color:var(--mu);margin-top:3px;}
+  .charts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:16px;}
+  .charts-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:16px;}
+  .chart-wrap{background:var(--sur);border:1px solid var(--bor);border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.04);}
+  .chart-wrap-accent{border-top:3px solid;}
+  .chart-title{font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:1px;color:var(--tx);margin-bottom:4px;}
+  .chart-subtitle{font-size:11px;color:var(--mu);margin-bottom:14px;}
+  /* Bar chart */
+  .bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .bar-label{font-size:11px;color:var(--tx);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+  .bar-track{flex:1;background:#f1f5f9;border-radius:20px;height:22px;overflow:hidden;position:relative;}
+  .bar-fill{height:100%;border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:10px;font-weight:700;color:#fff;transition:width .6s cubic-bezier(.4,0,.2,1);min-width:28px;}
+  .bar-count{font-size:12px;font-weight:700;color:var(--tx);width:32px;text-align:right;flex-shrink:0;}
+  .bar-pct{font-size:10px;color:var(--mu);width:36px;text-align:right;flex-shrink:0;}
+  /* Donut */
+  .donut-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .donut-legend{display:flex;flex-direction:column;gap:8px;flex:1;min-width:120px;}
+  .legend-item{display:flex;align-items:center;gap:8px;font-size:11px;padding:3px 0;}
+  .legend-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+  .legend-label{color:var(--tx);font-weight:500;flex:1;}
+  .legend-val{font-weight:700;color:var(--tx);}
+  .legend-pct{color:var(--mu);font-size:10px;}
+  /* Progress bars */
+  .prog-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .prog-label{font-size:12px;font-weight:600;color:var(--tx);flex:1;}
+  .prog-track{width:120px;background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;}
+  .prog-fill{height:100%;border-radius:20px;transition:width .6s ease;}
+  .prog-val{font-size:12px;font-weight:700;color:var(--tx);width:32px;text-align:right;}
+  @media(max-width:768px){.charts-grid,.charts-grid-3,.dash-kpis{grid-template-columns:1fr 1fr!important;}}
+  @media(max-width:480px){.charts-grid,.charts-grid-3,.dash-kpis{grid-template-columns:1fr!important;}}
+  /* Services page */
+  .svc-card{background:var(--sur);border:1px solid var(--bor);border-radius:8px;padding:14px;margin-bottom:10px;}
+  .svc-card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;}
+  .svc-participants{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .svc-participant{background:#f8fafc;border:1px solid var(--bor);border-radius:5px;padding:3px 8px;font-size:11px;}
   .arow{display:grid;grid-template-columns:140px 120px 80px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid rgba(48,54,61,.35);font-size:11px;align-items:start;}
   .abadge{display:inline-block;padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;}
   .a-add{background:rgba(34,197,94,.15);color:var(--gn);}
@@ -246,8 +292,8 @@ const CSS = `
   .a-login{background:rgba(139,148,158,.1);color:var(--mu);}
   /* Banner */
   .banner{border-radius:6px;padding:7px 12px;font-size:12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
-  .ban-rd{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#fca5a5;}
-  .ban-pu{background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.3);color:#d8b4fe;}
+  .ban-rd{background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;}
+  .ban-pu{background:#ede9fe;border:1px solid #c4b5fd;color:#5b21b6;}
   /* Detail */
   .dsec{margin-bottom:16px;}
   .dsec-t{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;color:var(--acc);text-transform:uppercase;border-bottom:1px solid var(--bor);padding-bottom:5px;margin-bottom:10px;}
@@ -255,11 +301,11 @@ const CSS = `
   .dk{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--mu);text-transform:uppercase;}
   .dv{font-size:12px;margin-top:1px;}
   .itbl{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;}
-  .iitem{background:#0d1117;border:1px solid var(--bor);border-radius:5px;padding:7px;text-align:center;}
+  .iitem{background:#f8fafc;border:1px solid var(--bor);border-radius:5px;padding:7px;text-align:center;}
   .iitem-l{font-size:9px;color:var(--mu);margin-bottom:3px;}
   /* Toast */
   .toasts{position:fixed;bottom:18px;right:18px;z-index:300;display:flex;flex-direction:column;gap:6px;}
-  .tst{background:var(--sur);border:1px solid var(--bor);border-radius:7px;padding:10px 14px;font-size:12px;min-width:250px;animation:fi .2s ease;display:flex;gap:8px;align-items:center;}
+  .tst{background:var(--sur);border:1px solid var(--bor);border-radius:7px;padding:10px 14px;font-size:12px;min-width:250px;animation:fi .2s ease;display:flex;gap:8px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.1);}
   .t-ok{border-left:3px solid var(--gn);}
   .t-err{border-left:3px solid var(--rd);}
   @keyframes fi{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
@@ -311,7 +357,7 @@ const CSS = `
   }
   .mobile-nav{
     position:fixed;bottom:0;left:0;right:0;
-    background:var(--sur);border-top:1px solid var(--bor);
+    background:#fff;border-top:1px solid var(--bor);box-shadow:0 -2px 8px rgba(0,0,0,.08);
     display:none;z-index:90;
     justify-content:space-around;align-items:center;
     padding:4px 0 env(safe-area-inset-bottom,4px);
@@ -490,6 +536,7 @@ export default function App(){
     if(view==="pendiente")    setFHab("PEND");
     if(view==="vencidos")     setFExam("VENCIDO");
     if(view==="bloqueados")   setFHab("BLOQ");
+    // dashboard and servicios don't need filters
   },[view]);
 
   // ── CRUD ──────────────────────────────────────────────────────────────────
@@ -683,6 +730,138 @@ export default function App(){
     }
   });
 
+  // ── Chart helpers ─────────────────────────────────────────────────────────
+  function BarChart({title, subtitle, data, colors, accentColor}){
+    const max = Math.max(...data.map(d=>d.v),1);
+    const total = data.reduce((s,d)=>s+d.v,0);
+    return(
+      <div className="chart-wrap" style={{borderTop:`3px solid ${accentColor||colors[0]}`}}>
+        <div className="chart-title">{title}</div>
+        {subtitle&&<div className="chart-subtitle">{subtitle}</div>}
+        {data.map((d,i)=>{
+          const pct=total>0?Math.round(d.v/total*100):0;
+          return(
+            <div className="bar-row" key={d.l}>
+              <div className="bar-label" title={d.l}>{d.l}</div>
+              <div className="bar-track">
+                <div className="bar-fill" style={{width:`${Math.max(2,(d.v/max)*100)}%`,background:colors[i%colors.length]}}>
+                  {(d.v/max)>0.15&&d.v}
+                </div>
+              </div>
+              <div className="bar-count">{d.v}</div>
+              <div className="bar-pct">{pct}%</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function DonutChart({title, subtitle, data, colors, accentColor}){
+    const total = data.reduce((s,d)=>s+d.v,0)||1;
+    let angle = -90;
+    const R=58, r=36, cx=72, cy=72, size=144;
+    const slices = data.map((d,i)=>{
+      const pct=d.v/total, sweep=pct*360;
+      if(sweep===0) return null;
+      const a1=angle*Math.PI/180, a2=(angle+sweep-0.5)*Math.PI/180;
+      const x1=cx+R*Math.cos(a1), y1=cy+R*Math.sin(a1);
+      const x2=cx+R*Math.cos(a2), y2=cy+R*Math.sin(a2);
+      const xi1=cx+r*Math.cos(a1), yi1=cy+r*Math.sin(a1);
+      const xi2=cx+r*Math.cos(a2), yi2=cy+r*Math.sin(a2);
+      const large=sweep>180?1:0;
+      const path=`M${xi1},${yi1} A${r},${r},0,${large},1,${xi2},${yi2} L${x2},${y2} A${R},${R},0,${large},0,${x1},${y1} Z`;
+      angle+=sweep;
+      return{...d,path,color:colors[i%colors.length],pct:Math.round(pct*100)};
+    }).filter(Boolean);
+    const topSlice = slices.reduce((a,b)=>a.v>b.v?a:b,slices[0]||{pct:0,l:""});
+    return(
+      <div className="chart-wrap" style={{borderTop:`3px solid ${accentColor||colors[0]}`}}>
+        <div className="chart-title">{title}</div>
+        {subtitle&&<div className="chart-subtitle">{subtitle}</div>}
+        <div className="donut-wrap">
+          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{flexShrink:0}}>
+            {slices.map((s,i)=>(
+              <path key={i} d={s.path} fill={s.color} stroke="#fff" strokeWidth="2">
+                <title>{s.l}: {s.v} ({s.pct}%)</title>
+              </path>
+            ))}
+            <circle cx={cx} cy={cy} r="32" fill="var(--sur)"/>
+            <text x={cx} y={cy-8} textAnchor="middle" fontSize="18" fontWeight="900" fill="var(--tx)" fontFamily="Barlow Condensed,sans-serif">{total}</text>
+            <text x={cx} y={cy+6} textAnchor="middle" fontSize="8" fill="var(--mu)" fontWeight="600" letterSpacing="1">TOTAL</text>
+            <text x={cx} y={cy+18} textAnchor="middle" fontSize="8" fill={topSlice.color||"var(--mu)"} fontWeight="700">{topSlice.pct}% {topSlice.l?.split(" ")[0]}</text>
+          </svg>
+          <div className="donut-legend">
+            {slices.map((s,i)=>(
+              <div className="legend-item" key={i}>
+                <div className="legend-dot" style={{background:s.color}}/>
+                <span className="legend-label">{s.l}</span>
+                <span className="legend-val">{s.v}</span>
+                <span className="legend-pct">({s.pct}%)</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function ProgressCard({title, subtitle, items, accentColor}){
+    const max = Math.max(...items.map(d=>d.v),1);
+    return(
+      <div className="chart-wrap" style={{borderTop:`3px solid ${accentColor||"#3b82f6"}`}}>
+        <div className="chart-title">{title}</div>
+        {subtitle&&<div className="chart-subtitle">{subtitle}</div>}
+        {items.map((d,i)=>(
+          <div className="prog-row" key={i}>
+            <div className="prog-label">{d.icon} {d.l}</div>
+            <div className="prog-track">
+              <div className="prog-fill" style={{width:`${Math.max(2,(d.v/max)*100)}%`,background:d.color||accentColor||"#3b82f6"}}/>
+            </div>
+            <div className="prog-val">{d.v}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // ── Services page data ─────────────────────────────────────────────────────
+  const allServices = useMemo(()=>{
+    const map = {};
+    enriched.forEach(w=>{
+      (w.historial||[]).forEach(h=>{
+        const key = `${h.tipoServicio}__${h.fechaInicio}`;
+        if(!map[key]) map[key]={tipoServicio:h.tipoServicio,fechaInicio:h.fechaInicio,fechaFin:h.fechaFin,participantes:[]};
+        map[key].participantes.push({nombre:w.nombre,rut:w.rut,especialidad:w.especialidad,diasTrabajados:h.diasTrabajados});
+      });
+    });
+    return Object.values(map).sort((a,b)=>b.fechaInicio?.localeCompare(a.fechaInicio||"")||0);
+  },[enriched]);
+
+  // ── Dashboard data ─────────────────────────────────────────────────────────
+  const dashData = useMemo(()=>{
+    const byCity = {};
+    enriched.forEach(w=>{ if(w.ciudad) byCity[w.ciudad]=(byCity[w.ciudad]||0)+1; });
+    const topCities = Object.entries(byCity).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([l,v])=>({l,v}));
+
+    const indData = INDUCTIONES.map(k=>({
+      l:k,
+      v:enriched.filter(w=>(w.inductiones?.[k]||"NO ESTA")==="NO ESTA").length
+    }));
+
+    const certData = [
+      {l:"Cert. Antecedentes", v:enriched.filter(w=>!w.certificadoAntecedentes||w.certificadoAntecedentes==="NO ESTA"||w.certificadoAntecedentes==="PENDIENTE").length},
+      {l:"Primeros Auxilios",  v:enriched.filter(w=>!w.primerosAuxilios||w.primerosAuxilios==="NO ESTA"||w.primerosAuxilios==="PENDIENTE").length},
+      {l:"Manejo Extintores",  v:enriched.filter(w=>!w.manejoExtintores||w.manejoExtintores==="NO ESTA"||w.manejoExtintores==="PENDIENTE").length},
+      {l:"Energía Potenciales",v:enriched.filter(w=>!w.energiaPotenciales||w.energiaPotenciales==="NO ESTA"||w.energiaPotenciales==="PENDIENTE").length},
+    ];
+
+    const svcCount = {};
+    SERVICIOS.forEach(s=>{ svcCount[s]=enriched.filter(w=>w.tipoServicio===s).length; });
+
+    return{topCities, indData, certData, svcCount};
+  },[enriched]);
+
   // ── Render helpers ────────────────────────────────────────────────────────
   function Pager(){
     if(totalPages<=1) return null;
@@ -709,9 +888,10 @@ export default function App(){
       <style>{CSS}</style>
       <div className="lw">
         <div className="lb">
-          <div style={{display:"flex",justifyContent:"center",gap:16,alignItems:"center",marginBottom:16}}>
-            <img src={LOGO_RHIO} alt="Rhio Rental" style={{height:50,objectFit:"contain"}}/>
-            <img src={LOGO_COLLA} alt="Collahuasi" style={{height:36,objectFit:"contain",filter:"none"}}/>
+          <div style={{display:"flex",justifyContent:"center",gap:20,alignItems:"center",marginBottom:18}}>
+            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:26,letterSpacing:2,color:"#f97316"}}>RHIO RENTAL</span>
+            <div style={{width:1,height:36,background:"#e2e8f0"}}/>
+            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:26,letterSpacing:2,color:"#15803d"}}>COLLAHUASI</span>
           </div>
           <div className="lbrand">OPI <span>CONTROL</span></div>
           <div className="lsub">GESTIÓN PARADAS DE PLANTA</div>
@@ -740,6 +920,8 @@ export default function App(){
     {id:"descanso", label:"En Descanso",       icon:"🛌"},
     {id:"vencidos", label:"Exám. Vencidos",   icon:"⚠️"},
     {id:"bloqueados",label:"Bloqueados",       icon:"🚫"},
+    {id:"dashboard",  label:"Dashboard",        icon:"📊"},
+    {id:"servicios",  label:"Servicios",         icon:"🗂️"},
   ];
   const navAdmin=[
     {id:"audit",label:"Bitácora",  icon:"📋"},
@@ -753,11 +935,11 @@ export default function App(){
 
         {/* ── Topbar ── */}
         <header className="topbar">
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <img src={LOGO_RHIO} alt="Rhio Rental" style={{height:44,objectFit:"contain",borderRadius:4}}/>
-            <div style={{width:1,height:32,background:"var(--bor)"}}/>
-            <img src={LOGO_COLLA} alt="Collahuasi" style={{height:32,objectFit:"contain"}}/>
-            <div style={{width:1,height:32,background:"var(--bor)"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:20,letterSpacing:1,color:"#f97316"}}>RHIO RENTAL</span>
+            <div style={{width:1,height:28,background:"var(--bor)"}}/>
+            <span style={{fontFamily:"Barlow Condensed,sans-serif",fontWeight:900,fontSize:20,letterSpacing:1,color:"#15803d"}}>COLLAHUASI</span>
+            <div style={{width:1,height:28,background:"var(--bor)"}}/>
             <div className="brand">OPI <span>CONTROL</span></div>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -868,7 +1050,7 @@ export default function App(){
 
                 {/* Edit form */}
                 {userForm.mode==="edit"&&(
-                  <div style={{background:"#0d1117",border:"1px solid var(--bor)",borderRadius:6,padding:14,marginBottom:16}}>
+                  <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:14,marginBottom:16}}>
                     <div style={{fontSize:11,fontWeight:700,letterSpacing:1,color:"var(--bl)",marginBottom:10}}>EDITAR: {userForm.username}</div>
                     <div className="fgrid">
                       <div className="fg"><label>Nombre</label><input value={userForm.nombre||""} onChange={e=>setUserForm(f=>({...f,nombre:e.target.value}))}/></div>
@@ -891,7 +1073,7 @@ export default function App(){
                 )}
 
                 {/* New user form */}
-                <div style={{background:"#0d1117",border:"1px solid var(--bor)",borderRadius:6,padding:14}}>
+                <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:14}}>
                   <div style={{fontSize:11,fontWeight:700,letterSpacing:1,color:"var(--gn)",marginBottom:10}}>+ NUEVO USUARIO</div>
                   <div className="fgrid">
                     <div className="fg"><label>Nombre</label><input value={userForm.newNombre||""} onChange={e=>setUserForm(f=>({...f,newNombre:e.target.value}))}/></div>
@@ -915,8 +1097,193 @@ export default function App(){
               </div>
             )}
 
+            {/* ── Dashboard View ── */}
+            {view==="dashboard"&&(()=>{
+              const enRevision=enriched.filter(w=>w.estadoHabilitado==="EN REVISIÓN"&&!w.bloqueado).length;
+              const noHab=enriched.filter(w=>w.estadoHabilitado==="NO HABILITADO"&&!w.bloqueado).length;
+              const vigente=enriched.filter(w=>w.estadoExamen==="VIGENTE").length;
+              const vencido=enriched.filter(w=>w.estadoExamen==="VENCIDO").length;
+              const porVencer=enriched.filter(w=>w.estadoExamen==="POR VENCER").length;
+              const sinFecha=enriched.filter(w=>w.estadoExamen==="SIN FECHA").length;
+              const pct=(v,t)=>t>0?Math.round(v/t*100):0;
+              return(
+              <div>
+                {/* Header */}
+                <div className="dash-hdr">
+                  <div>
+                    <div className="dash-title">📊 DASHBOARD OPERACIONAL</div>
+                    <div className="dash-sub">Resumen general · {enriched.length} trabajadores registrados · Actualizado en tiempo real</div>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    <div style={{background:"#dcfce7",border:"1px solid #86efac",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,color:"#15803d"}}>
+                      ✅ {pct(kpi.hab,enriched.length)}% Habilitados
+                    </div>
+                    <div style={{background:"#fee2e2",border:"1px solid #fca5a5",borderRadius:6,padding:"6px 12px",fontSize:11,fontWeight:700,color:"#dc2626"}}>
+                      ⚠️ {vencido} Exámenes vencidos
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPI Strip */}
+                <div className="dash-kpis">
+                  {[
+                    {icon:"✅",val:kpi.hab,      label:"Habilitados",     sub:`${pct(kpi.hab,enriched.length)}% del total`,    color:"#16a34a"},
+                    {icon:"🔍",val:enRevision,   label:"En Revisión",     sub:"Pendiente evaluación",                          color:"#ca8a04"},
+                    {icon:"❌",val:noHab,        label:"No Habilitados",  sub:"Requieren acción",                              color:"#dc2626"},
+                    {icon:"⏳",val:kpi.pend,     label:"Pend. Descanso",  sub:"Servicio en curso",                             color:"#f97316"},
+                    {icon:"🚫",val:kpi.bloqueado,label:"Bloqueados",      sub:"Sin acceso a servicios",                        color:"#7c3aed"},
+                  ].map((k,i)=>(
+                    <div className="dash-kpi" key={i} onClick={()=>{setView("workers");setFHab(["HAB","NOHAB","NOHAB","PEND","BLOQ"][i]);}}>
+                      <div className="dash-kpi-accent" style={{background:k.color}}/>
+                      <div className="dash-kpi-icon">{k.icon}</div>
+                      <div className="dash-kpi-val" style={{color:k.color}}>{k.val}</div>
+                      <div className="dash-kpi-label">{k.label}</div>
+                      <div className="dash-kpi-sub">{k.sub}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Row 1: Donuts */}
+                <div className="charts-grid-3">
+                  <DonutChart
+                    title="Estado de Habilitación"
+                    subtitle="Distribución del personal por estado"
+                    accentColor="#16a34a"
+                    data={[
+                      {l:"Habilitados",    v:kpi.hab},
+                      {l:"En Revisión",    v:enRevision},
+                      {l:"No Habilitados", v:noHab},
+                      {l:"Bloqueados",     v:kpi.bloqueado},
+                      {l:"Pend. Descanso", v:kpi.pend},
+                    ].filter(d=>d.v>0)}
+                    colors={["#16a34a","#ca8a04","#dc2626","#7c3aed","#f97316"]}
+                  />
+                  <DonutChart
+                    title="Estado de Exámenes"
+                    subtitle="Vigencia de exámenes médicos"
+                    accentColor="#3b82f6"
+                    data={[
+                      {l:"Vigente",    v:vigente},
+                      {l:"Por Vencer", v:porVencer},
+                      {l:"Vencido",    v:vencido},
+                      {l:"Sin Fecha",  v:sinFecha},
+                    ].filter(d=>d.v>0)}
+                    colors={["#16a34a","#ca8a04","#dc2626","#94a3b8"]}
+                  />
+                  <DonutChart
+                    title="Servicios Asignados"
+                    subtitle="Distribución por tipo de servicio"
+                    accentColor="#f97316"
+                    data={SERVICIOS.map(s=>({l:s,v:enriched.filter(w=>w.tipoServicio===s).length})).filter(d=>d.v>0)}
+                    colors={["#f97316","#3b82f6","#7c3aed","#16a34a"]}
+                  />
+                </div>
+
+                {/* Row 2: Bars */}
+                <div className="charts-grid">
+                  <BarChart
+                    title="Personal por Ciudad"
+                    subtitle="Top 8 ciudades con más trabajadores registrados"
+                    accentColor="#3b82f6"
+                    data={dashData.topCities}
+                    colors={["#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#dbeafe","#eff6ff","#1d4ed8","#1e40af"]}
+                  />
+                  <BarChart
+                    title="Inducciones Faltantes"
+                    subtitle="Trabajadores sin inducción completada por tipo"
+                    accentColor="#dc2626"
+                    data={dashData.indData}
+                    colors={["#dc2626","#f97316","#ca8a04","#7c3aed","#3b82f6"]}
+                  />
+                </div>
+
+                {/* Row 3: Progress + Certs */}
+                <div className="charts-grid">
+                  <ProgressCard
+                    title="Cumplimiento de Inducciones"
+                    subtitle="% de trabajadores con inducción OK"
+                    accentColor="#16a34a"
+                    items={INDUCTIONES.map(k=>({
+                      icon:"📋",
+                      l:k,
+                      v:enriched.filter(w=>w.inductiones?.[k]==="OK").length,
+                      color:"#16a34a"
+                    }))}
+                  />
+                  <ProgressCard
+                    title="Estado de Certificados y Cursos"
+                    subtitle="Trabajadores con documentación al día"
+                    accentColor="#f97316"
+                    items={[
+                      {icon:"📄",l:"Cert. Antecedentes", v:enriched.filter(w=>w.certificadoAntecedentes==="OK").length, color:"#16a34a"},
+                      {icon:"🏥",l:"Primeros Auxilios",  v:enriched.filter(w=>w.primerosAuxilios==="OK").length,       color:"#3b82f6"},
+                      {icon:"🧯",l:"Manejo Extintores",  v:enriched.filter(w=>w.manejoExtintores==="OK").length,       color:"#f97316"},
+                      {icon:"⚡",l:"Energía Potenciales",v:enriched.filter(w=>w.energiaPotenciales==="OK").length,     color:"#7c3aed"},
+                    ]}
+                  />
+                </div>
+
+                {/* Row 4: Eval Psicológica */}
+                <div className="charts-grid">
+                  <BarChart
+                    title="Evaluación Psicológica"
+                    subtitle="Distribución por resultado de evaluación"
+                    accentColor="#7c3aed"
+                    data={[...new Set(enriched.map(w=>w.evalPsicologica).filter(Boolean))].map(e=>({
+                      l:e.length>25?e.slice(0,25)+"…":e,
+                      v:enriched.filter(w=>w.evalPsicologica===e).length
+                    })).sort((a,b)=>b.v-a.v).slice(0,6)}
+                    colors={["#16a34a","#3b82f6","#ca8a04","#dc2626","#7c3aed","#f97316"]}
+                  />
+                  <BarChart
+                    title="Certificados Pendientes"
+                    subtitle="Trabajadores con documentos sin completar"
+                    accentColor="#dc2626"
+                    data={dashData.certData}
+                    colors={["#dc2626","#f97316","#ca8a04","#7c3aed"]}
+                  />
+                </div>
+
+              </div>
+              );
+            })()}
+
+            {/* ── Services View ── */}
+            {view==="servicios"&&(
+              <div>
+                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:2,marginBottom:16,color:"var(--tx)"}}>🗂️ SERVICIOS REALIZADOS</div>
+                {allServices.length===0
+                  ?<div className="empty">No hay servicios registrados aún</div>
+                  :allServices.map((svc,i)=>{
+                    const cls=svc.tipoServicio==="Parada de Planta"?"s-p":svc.tipoServicio==="ODS"?"s-o":svc.tipoServicio==="Contrato Base"?"s-c":"s-r";
+                    return(
+                      <div className="svc-card" key={i}>
+                        <div className="svc-card-hdr">
+                          <span className={`stag ${cls}`} style={{fontSize:12,padding:"3px 10px"}}>{svc.tipoServicio}</span>
+                          <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>📅 {svc.fechaInicio}</span>
+                          {svc.fechaFin&&<span style={{fontSize:11,color:"var(--mu)"}}>→ {svc.fechaFin}</span>}
+                          <span style={{background:"#f1f5f9",border:"1px solid var(--bor)",borderRadius:12,padding:"2px 10px",fontSize:11,fontWeight:700,color:"var(--mu)",marginLeft:"auto"}}>
+                            👷 {svc.participantes.length} trabajador{svc.participantes.length!==1?"es":""}
+                          </span>
+                        </div>
+                        <div className="svc-participants">
+                          {svc.participantes.map((p,j)=>(
+                            <div className="svc-participant" key={j}>
+                              <span style={{fontWeight:600}}>{p.nombre}</span>
+                              <span style={{color:"var(--mu)",marginLeft:4,fontSize:10}}>{p.rut}</span>
+                              {p.diasTrabajados>0&&<span style={{color:"var(--acc)",marginLeft:4,fontSize:10}}>· {p.diasTrabajados}d</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                }
+              </div>
+            )}
+
             {/* ── Workers View ── */}
-            {!["audit","users"].includes(view)&&(<>
+            {!["audit","users","dashboard","servicios"].includes(view)&&(<>
               <div className="kpis" style={{gridTemplateColumns:"repeat(5,1fr)"}}>
                 <div className="kpi"><div className="kpi-l">Total</div><div className="kpi-v" style={{color:"var(--bl)"}}>{kpi.total}</div><div className="kpi-s">registros</div></div>
                 <div className="kpi"><div className="kpi-l">Habilitados</div><div className="kpi-v" style={{color:"var(--gn)"}}>{kpi.hab}</div><div className="kpi-s">para programar</div></div>
@@ -1172,7 +1539,7 @@ export default function App(){
                     {(!w.historial||!w.historial.length)
                       ?<div style={{color:"var(--mu)",fontSize:12}}>Sin servicios registrados</div>
                       :w.historial.map((h,i)=>(
-                        <div key={i} style={{background:"#0d1117",border:"1px solid var(--bor)",borderRadius:6,padding:"9px 12px",marginBottom:7,fontSize:11}}>
+                        <div key={i} style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:"9px 12px",marginBottom:7,fontSize:11}}>
                           <div style={{marginBottom:3}}>{servTag(h.tipoServicio)}</div>
                           <div style={{color:"var(--mu)"}}>Inicio: {h.fechaInicio} · Fin: {h.fechaFin||"En curso"} · Días: <b style={{color:"var(--tx)"}}>{h.diasTrabajados}</b></div>
                           {h.fechaFin&&<div style={{color:"var(--bl)",marginTop:3}}>Disponible desde: {(()=>{const d=new Date(h.fechaFin);d.setDate(d.getDate()+Number(h.diasTrabajados));return d.toISOString().split("T")[0];})()}</div>}
@@ -1225,7 +1592,7 @@ export default function App(){
                     <input type="number" min={0} value={svcForm.diasTrabajados} onChange={e=>setSvcForm(f=>({...f,diasTrabajados:e.target.value}))} style={{background:"rgba(249,115,22,.05)"}}/>
                   </div>
                 </div>
-                <div style={{background:"#0d1117",border:"1px solid var(--bor)",borderRadius:6,padding:12,marginTop:10}}>
+                <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:12,marginTop:10}}>
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:1,color:"var(--acc)",marginBottom:5}}>REGLA · 1 día libre por día trabajado</div>
                   <div style={{fontSize:11,color:"var(--mu)"}}>
                     {svcForm.diasTrabajados>0&&svcForm.fechaFin
@@ -1279,7 +1646,7 @@ export default function App(){
                     <input type="number" min={0} value={bulkSvcForm.diasTrabajados} onChange={e=>setBulkSvcForm(f=>({...f,diasTrabajados:e.target.value}))} style={{background:"rgba(249,115,22,.05)"}}/>
                   </div>
                 </div>
-                <div style={{background:"#0d1117",border:"1px solid var(--bor)",borderRadius:6,padding:10,marginTop:8,fontSize:11,color:"var(--mu)"}}>
+                <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:10,marginTop:8,fontSize:11,color:"var(--mu)"}}>
                   <span style={{color:"var(--acc)",fontWeight:700,fontSize:10,letterSpacing:1}}>REGLA · </span>
                   {bulkSvcForm.diasTrabajados>0&&bulkSvcForm.fechaFin
                     ?<span style={{color:"var(--bl)"}}>Disponible desde: {(()=>{const d=new Date(bulkSvcForm.fechaFin);d.setDate(d.getDate()+Number(bulkSvcForm.diasTrabajados));return d.toISOString().split("T")[0];})()}</span>
@@ -1302,6 +1669,8 @@ export default function App(){
             {id:"pendiente",icon:"⏳", label:"PEND."},
             {id:"vencidos",  icon:"⚠️", label:"EXÁM."},
             {id:"bloqueados",icon:"🚫", label:"BLOQ."},
+            {id:"dashboard", icon:"📊", label:"DASH."},
+            {id:"servicios", icon:"🗂️", label:"SERV."},
             ...(canAdmin?[{id:"audit",icon:"📋",label:"LOG"}]:[]),
           ].map(n=>(
             <div key={n.id} className={`mnav-item${view===n.id?" act":""}`} onClick={()=>setView(n.id)}>
