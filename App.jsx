@@ -446,6 +446,7 @@ export default function App(){
   const [editSvcModal, setEditSvcModal] = useState(false);
   const [editSvcIdx, setEditSvcIdx] = useState(null);
   const [editSvcForm, setEditSvcForm] = useState({});
+  const [selectedSvcs, setSelectedSvcs] = useState(new Set());
   const [bulkSvcForm, setBulkSvcForm] = useState({tipoServicio:"",fechaInicio:"",fechaFin:"",diasTrabajados:0});
 
   // ── Storage init ──────────────────────────────────────────────────────────
@@ -734,6 +735,64 @@ export default function App(){
     setSelected(updated.find(x=>x.id===w.id)||selected);
   }
 
+  // Delete all participant entries for a service (by tipo+fechaInicio key)
+  function handleDeleteService(svc){
+    if(!confirm(`¿Eliminar el servicio "${svc.tipoServicio}" del ${svc.fechaInicio} para ${svc.participantes.length} trabajador${svc.participantes.length!==1?"es":""}?`)) return;
+    const updated=workers.map(w=>{
+      const hist=(w.historial||[]).filter(h=>!(h.tipoServicio===svc.tipoServicio&&h.fechaInicio===svc.fechaInicio));
+      const lastSvc=hist.length>0?hist[hist.length-1].tipoServicio:"";
+      return{...w,historial:hist,tipoServicio:w.historial.length!==hist.length?lastSvc:w.tipoServicio};
+    });
+    setWorkers(updated);
+    updated.filter(w=>{
+      const orig=workers.find(x=>x.id===w.id);
+      return orig&&orig.historial.length!==w.historial.length;
+    }).forEach(w=>dbSaveWorker(w).catch(()=>{}));
+    audit("delete",`Servicio eliminado: ${svc.tipoServicio} (${svc.fechaInicio}) · ${svc.participantes.length} participantes`,"");
+    toast(`Servicio eliminado · ${svc.participantes.length} registros borrados`,"error");
+  }
+
+  // Delete individual participant from a service
+  function handleDeleteParticipant(workerId, histIdx){
+    if(!confirm("¿Eliminar este trabajador del servicio?")) return;
+    const updated=workers.map(w=>{
+      if(w.id!==workerId) return w;
+      const hist=w.historial.filter((_,i)=>i!==histIdx);
+      const lastSvc=hist.length>0?hist[hist.length-1].tipoServicio:"";
+      return{...w,historial:hist,tipoServicio:lastSvc};
+    });
+    setWorkers(updated);
+    const updW=updated.find(x=>x.id===workerId);
+    if(updW) dbSaveWorker(updW).catch(()=>{});
+    const w=workers.find(x=>x.id===workerId);
+    audit("delete",`Participante eliminado de servicio`,w?.nombre||"");
+    toast("Participante eliminado","error");
+  }
+
+  // Bulk delete selected services
+  function handleBulkDeleteSvcs(){
+    const keys=[...selectedSvcs];
+    if(!confirm(`¿Eliminar ${keys.length} servicio${keys.length!==1?"s":""}? Se eliminarán todos los registros de participantes.`)) return;
+    let updated=[...workers];
+    keys.forEach(key=>{
+      const [tipo,...restParts]=key.split("__");
+      const fecha=restParts.join("__");
+      updated=updated.map(w=>{
+        const hist=(w.historial||[]).filter(h=>!(h.tipoServicio===tipo&&h.fechaInicio===fecha));
+        const lastSvc=hist.length>0?hist[hist.length-1].tipoServicio:"";
+        return{...w,historial:hist,tipoServicio:w.historial.length!==hist.length?lastSvc:w.tipoServicio};
+      });
+    });
+    setWorkers(updated);
+    updated.forEach(w=>{
+      const orig=workers.find(x=>x.id===w.id);
+      if(orig&&orig.historial.length!==w.historial.length) dbSaveWorker(w).catch(()=>{});
+    });
+    audit("delete",`Eliminación masiva: ${keys.length} servicios`,"");
+    toast(`${keys.length} servicios eliminados`,"error");
+    setSelectedSvcs(new Set());
+  }
+
   function downloadTemplate(){
     const cols=["RUT","NOMBRE","TELEFONO","CORREO","CIUDAD","DIRECCION","ESPECIALIDAD","NACIONALIDAD","AFP","SALUD","ESTADO_CIVIL","ESTADO_EXAMEN","EVAL_PSICOLOGICA","ESTADO_HABILITADO","TIPO_SERVICIO","INDUCCION_PLANTA","INDUCCION_CMDIC","INDUCCION_BLOQUEO","INDUCCION_PUERTO","INDUCCION_PROYECTO","OBSERVACION"];
     const ejemplo=["12345678-9","JUAN PEDRO GONZALEZ LOPEZ","+56 9 1234 5678","juan@correo.com","IQUIQUE","AV. EJEMPLO 123","OPERARIO DE ASEO","CHILENA","HABITAT","FONASA","SOLTERO","VIGENTE","APTO","HABILITADO PARA SUBIR","Parada de Planta","OK","OK","OK","NO ESTA","NO ESTA",""];
@@ -923,10 +982,14 @@ export default function App(){
   const allServices = useMemo(()=>{
     const map = {};
     enriched.forEach(w=>{
-      (w.historial||[]).forEach(h=>{
+      (w.historial||[]).forEach((h,idx)=>{
         const key = `${h.tipoServicio}__${h.fechaInicio}`;
         if(!map[key]) map[key]={tipoServicio:h.tipoServicio,fechaInicio:h.fechaInicio,fechaFin:h.fechaFin,participantes:[]};
-        map[key].participantes.push({nombre:w.nombre,rut:w.rut,especialidad:w.especialidad,diasTrabajados:h.diasTrabajados});
+        map[key].participantes.push({
+          workerId:w.id, nombre:w.nombre, rut:w.rut,
+          especialidad:w.especialidad, diasTrabajados:h.diasTrabajados,
+          histIdx:idx
+        });
       });
     });
     return Object.values(map).sort((a,b)=>b.fechaInicio?.localeCompare(a.fechaInicio||"")||0);
@@ -1383,27 +1446,57 @@ export default function App(){
             {/* ── Services View ── */}
             {view==="servicios"&&(
               <div>
-                <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:2,marginBottom:16,color:"var(--tx)"}}>🗂️ SERVICIOS REALIZADOS</div>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16,flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <div style={{fontFamily:"Barlow Condensed,sans-serif",fontSize:22,fontWeight:900,letterSpacing:2,color:"var(--tx)"}}>🗂️ SERVICIOS REALIZADOS</div>
+                    <div style={{fontSize:11,color:"var(--mu)",marginTop:2}}>{allServices.length} servicios registrados</div>
+                  </div>
+                  <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                    {selectedSvcs.size>0&&canEdit&&(
+                      <button className="btn btn-sm" style={{background:"#fee2e2",color:"#dc2626",border:"1px solid #fca5a5",fontWeight:700}} onClick={handleBulkDeleteSvcs}>
+                        🗑 Eliminar {selectedSvcs.size} servicio{selectedSvcs.size!==1?"s":""}
+                      </button>
+                    )}
+                    {selectedSvcs.size>0&&(
+                      <button className="btn btn-s btn-sm" onClick={()=>setSelectedSvcs(new Set())}>✕ Deseleccionar</button>
+                    )}
+                  </div>
+                </div>
+
                 {allServices.length===0
-                  ?<div className="empty">No hay servicios registrados aún</div>
+                  ?<div className="empty"><div style={{fontSize:36,marginBottom:10}}>🗂️</div>No hay servicios registrados aún</div>
                   :allServices.map((svc,i)=>{
+                    const key=`${svc.tipoServicio}__${svc.fechaInicio}`;
                     const cls=svc.tipoServicio==="Parada de Planta"?"s-p":svc.tipoServicio==="ODS"?"s-o":svc.tipoServicio==="Contrato Base"?"s-c":"s-r";
+                    const isSelected=selectedSvcs.has(key);
                     return(
-                      <div className="svc-card" key={i}>
+                      <div className="svc-card" key={i} style={{border:`1px solid ${isSelected?"#f97316":"var(--bor)"}`,background:isSelected?"#fff7ed":"var(--sur)"}}>
                         <div className="svc-card-hdr">
+                          {canEdit&&<input type="checkbox" checked={isSelected} onChange={()=>{
+                            setSelectedSvcs(prev=>{const n=new Set(prev);n.has(key)?n.delete(key):n.add(key);return n;});
+                          }} style={{cursor:"pointer",flexShrink:0}}/>}
                           <span className={`stag ${cls}`} style={{fontSize:12,padding:"3px 10px"}}>{svc.tipoServicio}</span>
-                          <span style={{fontSize:12,fontWeight:600,color:"var(--tx)"}}>📅 {svc.fechaInicio}</span>
+                          <span style={{fontSize:12,fontWeight:700,color:"var(--tx)"}}>📅 {svc.fechaInicio}</span>
                           {svc.fechaFin&&<span style={{fontSize:11,color:"var(--mu)"}}>→ {svc.fechaFin}</span>}
+                          {svc.fechaFin&&svc.participantes[0]?.diasTrabajados>0&&(
+                            <span style={{fontSize:11,color:"var(--bl)"}}>
+                              ✅ Disponible: {calcDisponible(svc.fechaFin,svc.participantes[0].diasTrabajados)}
+                            </span>
+                          )}
                           <span style={{background:"#f1f5f9",border:"1px solid var(--bor)",borderRadius:12,padding:"2px 10px",fontSize:11,fontWeight:700,color:"var(--mu)",marginLeft:"auto"}}>
                             👷 {svc.participantes.length} trabajador{svc.participantes.length!==1?"es":""}
                           </span>
+                          {canEdit&&<button className="btn btn-sm" style={{background:"#fee2e2",color:"#dc2626",border:"1px solid #fca5a5",fontSize:10,borderRadius:6,cursor:"pointer",flexShrink:0}} onClick={()=>handleDeleteService(svc)}>
+                            🗑 Eliminar servicio
+                          </button>}
                         </div>
-                        <div className="svc-participants">
+                        <div style={{marginTop:8,display:"flex",flexWrap:"wrap",gap:6}}>
                           {svc.participantes.map((p,j)=>(
-                            <div className="svc-participant" key={j}>
+                            <div key={j} style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:"5px 10px",fontSize:11,display:"flex",alignItems:"center",gap:6}}>
                               <span style={{fontWeight:600}}>{p.nombre}</span>
-                              <span style={{color:"var(--mu)",marginLeft:4,fontSize:10}}>{p.rut}</span>
-                              {p.diasTrabajados>0&&<span style={{color:"var(--acc)",marginLeft:4,fontSize:10}}>· {p.diasTrabajados}d</span>}
+                              <span style={{color:"var(--mu)",fontSize:10}}>{p.rut}</span>
+                              {p.diasTrabajados>0&&<span style={{color:"var(--acc)",fontSize:10,fontWeight:600}}>{p.diasTrabajados}d</span>}
+                              {canEdit&&<button onClick={()=>handleDeleteParticipant(p.workerId,p.histIdx)} style={{background:"none",border:"none",color:"#dc2626",cursor:"pointer",fontSize:13,padding:"0 2px",lineHeight:1}} title="Quitar del servicio">×</button>}
                             </div>
                           ))}
                         </div>
@@ -1725,12 +1818,17 @@ export default function App(){
                       ?<div style={{color:"var(--mu)",fontSize:12}}>Sin servicios registrados</div>
                       :w.historial.map((h,i)=>(
                         <div key={i} style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:6,padding:"9px 12px",marginBottom:7,fontSize:11}}>
-                          <div style={{marginBottom:3}}>{servTag(h.tipoServicio)}</div>
-                          <div style={{color:"var(--mu)"}}>Inicio: {h.fechaInicio} · Fin: {h.fechaFin||"En curso"} · Días: <b style={{color:"var(--tx)"}}>{h.diasTrabajados}</b></div>
-                          {h.fechaFin&&<div style={{color:"var(--bl)",marginTop:3}}>
-                            Descanso: {(()=>{const d=new Date(h.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}
-                            {" → "}
-                            Disponible desde: {calcDisponible(h.fechaFin,h.diasTrabajados)}
+                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:5}}>
+                            <div>{servTag(h.tipoServicio)}</div>
+                            {canEdit&&<div style={{display:"flex",gap:4}}>
+                              <button className="btn btn-s btn-sm" style={{fontSize:10}} onClick={()=>openEditSvc(w,i)}>✏️ Editar</button>
+                              <button className="btn btn-sm" style={{background:"#fee2e2",color:"#dc2626",border:"1px solid #fca5a5",fontSize:10,borderRadius:6,cursor:"pointer"}} onClick={()=>handleDeleteSvc(w,i)}>🗑 Eliminar</button>
+                            </div>}
+                          </div>
+                          <div style={{color:"var(--mu)"}}>Inicio: <b style={{color:"var(--tx)"}}>{h.fechaInicio}</b> · Fin: <b style={{color:"var(--tx)"}}>{h.fechaFin||"En curso"}</b> · Días: <b style={{color:"var(--tx)"}}>{h.diasTrabajados}</b></div>
+                          {h.fechaFin&&<div style={{color:"var(--bl)",marginTop:4,display:"flex",gap:10,flexWrap:"wrap"}}>
+                            <span>🛌 Descanso desde: <b>{(()=>{const d=new Date(h.fechaFin);d.setDate(d.getDate()+1);return d.toISOString().split("T")[0];})()}</b></span>
+                            <span>✅ Disponible desde: <b style={{color:"#16a34a"}}>{calcDisponible(h.fechaFin,h.diasTrabajados)}</b></span>
                           </div>}
                         </div>
                       ))
