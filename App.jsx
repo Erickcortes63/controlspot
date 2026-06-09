@@ -1221,7 +1221,7 @@ export default function App(){
                       return{...f,fechaFin:ff,diasTrabajados:dias};
                     });
                   }}/></div>
-                  <div className="fg full"><label>Días Trabajados <span style={{fontSize:10,color:"var(--acc)"}}}>(calculado automático)</span></label>
+                  <div className="fg full"><label>Días Trabajados <span style={{fontSize:10,color:"var(--acc)"}}>(calculado automático)</span></label>
                     <input type="number" min={0} value={svcForm.diasTrabajados} onChange={e=>setSvcForm(f=>({...f,diasTrabajados:e.target.value}))} style={{background:"rgba(249,115,22,.05)"}}/>
                   </div>
                 </div>
@@ -1275,7 +1275,7 @@ export default function App(){
                       return{...f,fechaFin:ff,diasTrabajados:dias};
                     });
                   }}/></div>
-                  <div className="fg full"><label>Días Trabajados <span style={{fontSize:10,color:"var(--acc)"}}}>(calculado automático)</span></label>
+                  <div className="fg full"><label>Días Trabajados <span style={{fontSize:10,color:"var(--acc)"}}>(calculado automático)</span></label>
                     <input type="number" min={0} value={bulkSvcForm.diasTrabajados} onChange={e=>setBulkSvcForm(f=>({...f,diasTrabajados:e.target.value}))} style={{background:"rgba(249,115,22,.05)"}}/>
                   </div>
                 </div>
