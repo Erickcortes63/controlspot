@@ -827,6 +827,134 @@ export default function App(){
     setSelectedSvcs(new Set());
   }
 
+  // ── Export to Excel (CSV with BOM that Excel opens natively) ──────────────
+  function downloadExcel(){
+    const cols=["N°","RUT","Nombre","Teléfono","Correo","Ciudad","Dirección",
+      "Especialidad","AFP","Salud","Estado Civil","F. Venc. Examen","Estado Examen",
+      "Eval. Psicológica","Ind. Planta","Ind. CMDIC","Ind. Bloqueo","Ind. Puerto","Ind. Proyecto",
+      "Cert. Antecedentes","Primeros Auxilios","Manejo Extintores","Energía Potenciales",
+      "Estado Habilitado","Estado Apto (5 Req)","Tipo Servicio","Pend. Descanso",
+      "Bloqueado","Motivo Bloqueo","Observación","Motivo Acción","Banco","Tipo Cuenta","N° Cuenta"];
+    const rows=enriched.map((w,i)=>{
+      const req=checkRequisitos(w);
+      return[
+        i+1, w.rut, w.nombre, w.telefono, w.correo, w.ciudad, w.direccion,
+        w.especialidad, w.afp, w.salud, w.estadoCivil,
+        w.fechaVencimientoExamen, w.estadoExamen, w.evalPsicologica,
+        w.inductiones?.Planta, w.inductiones?.CMDIC, w.inductiones?.Bloqueo,
+        w.inductiones?.Puerto, w.inductiones?.Proyecto,
+        w.certificadoAntecedentes, w.primerosAuxilios, w.manejoExtintores, w.energiaPotenciales,
+        w.estadoHabilitado,
+        req.cumple?"APTO":"NO APTO",
+        w.tipoServicio||"",
+        w._pendDescanso?"SÍ":"NO",
+        w.bloqueado?"SÍ":"NO",
+        w.motivoBloqueo||"",
+        w.obs||"",
+        w.motivoAccion||"",
+        w.banco||"", w.tipoCuenta||"", w.numeroCuenta||""
+      ].map(v=>`"${(v||"").toString().replace(/"/g,'""')}"`);
+    });
+    const csv="﻿"+[cols.map(c=>`"${c}"`).join(","),...rows.map(r=>r.join(","))].join("
+");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+    a.download=`OPI_Control_Completo_${new Date().toISOString().split("T")[0]}.csv`;
+    a.click();
+    toast(`✓ Excel descargado · ${enriched.length} trabajadores`);
+  }
+
+  // ── Export Dashboard as HTML ───────────────────────────────────────────────
+  function downloadDashboardHTML(){
+    const now=new Date().toLocaleDateString("es-CL",{day:"2-digit",month:"long",year:"numeric"});
+    const hab=kpi.hab, noApto=kpi.noApto, pend=kpi.pend, bloq=kpi.bloqueado, venc=kpi.vencido, total=kpi.total;
+    const pct=(v)=>total>0?Math.round(v/total*100):0;
+    const reqItems=[
+      {l:"Examen Vigente",         v:enriched.filter(w=>w.estadoExamen==="VIGENTE").length,       c:"#3b82f6"},
+      {l:"Eval. Psicológica OK",   v:enriched.filter(w=>{const r=(w.evalPsicologica||"").toUpperCase();return r.length>0&&!r.includes("NO RECOMENDABLE")&&!r.includes("PENDIENTE")&&(r==="APTO"||r.startsWith("RECOMENDABLE")||r.startsWith("RECOM."));}).length, c:"#7c3aed"},
+      {l:"Inducción CMDIC OK",     v:enriched.filter(w=>w.inductiones?.CMDIC==="OK").length,       c:"#f97316"},
+      {l:"Inducción Planta OK",    v:enriched.filter(w=>w.inductiones?.Planta==="OK").length,      c:"#ca8a04"},
+      {l:"Cert. Antecedentes OK",  v:enriched.filter(w=>w.certificadoAntecedentes==="OK").length,  c:"#16a34a"},
+    ];
+    const ciudades=Object.entries(enriched.reduce((a,w)=>{if(w.ciudad)a[w.ciudad]=(a[w.ciudad]||0)+1;return a;},{})).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const maxCiudad=ciudades[0]?.[1]||1;
+    const html=`<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>OPI Control — Dashboard ${now}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:Arial,sans-serif;background:#f0f4f8;color:#1e293b;padding:24px;}
+h1{font-size:28px;font-weight:900;letter-spacing:2px;margin-bottom:4px;}
+h1 span{color:#f97316;}
+.sub{font-size:13px;color:#64748b;margin-bottom:24px;}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.kpi{background:#fff;border-radius:8px;padding:16px;border-top:3px solid;}
+.kpi-v{font-size:36px;font-weight:900;line-height:1;}
+.kpi-l{font-size:10px;font-weight:700;letter-spacing:1px;color:#64748b;text-transform:uppercase;margin-top:4px;}
+.kpi-s{font-size:10px;color:#94a3b8;margin-top:2px;}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.chart{background:#fff;border-radius:8px;padding:16px;border-top:3px solid #3b82f6;}
+.chart h3{font-size:14px;font-weight:700;margin-bottom:4px;}
+.chart-sub{font-size:11px;color:#64748b;margin-bottom:12px;}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.bar-label{font-size:11px;width:150px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;background:#f1f5f9;border-radius:20px;height:20px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:20px;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:10px;font-weight:700;color:#fff;min-width:24px;}
+.bar-n{font-size:11px;font-weight:700;width:30px;text-align:right;}
+.req-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px;}
+.req-item{background:#fff;border-radius:8px;padding:12px;text-align:center;border-top:3px solid;}
+.req-v{font-size:28px;font-weight:900;}
+.req-pct{font-size:11px;color:#64748b;}
+.req-l{font-size:9px;color:#64748b;margin-top:4px;}
+.footer{text-align:center;font-size:11px;color:#94a3b8;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;}
+@media print{body{padding:12px;}button{display:none;}}
+</style>
+</head>
+<body>
+<h1>OPI <span>CONTROL</span> · Dashboard Operacional</h1>
+<div class="sub">Generado el ${now} · ${total} trabajadores registrados · RHIO RENTAL / COLLAHUASI</div>
+
+<div class="kpis">
+  <div class="kpi" style="border-top-color:#16a34a"><div class="kpi-v" style="color:#16a34a">${hab}</div><div class="kpi-l">Aptos para Servicio</div><div class="kpi-s">${pct(hab)}% del total</div></div>
+  <div class="kpi" style="border-top-color:#dc2626"><div class="kpi-v" style="color:#dc2626">${noApto}</div><div class="kpi-l">No Aptos</div><div class="kpi-s">Faltan requisitos</div></div>
+  <div class="kpi" style="border-top-color:#f97316"><div class="kpi-v" style="color:#f97316">${pend}</div><div class="kpi-l">Pend. Descanso</div><div class="kpi-s">Servicio en curso</div></div>
+  <div class="kpi" style="border-top-color:#ca8a04"><div class="kpi-v" style="color:#ca8a04">${venc}</div><div class="kpi-l">Exám. Vencidos</div><div class="kpi-s">Urgente renovar</div></div>
+  <div class="kpi" style="border-top-color:#7c3aed"><div class="kpi-v" style="color:#7c3aed">${bloq}</div><div class="kpi-l">Bloqueados</div><div class="kpi-s">Sin acceso</div></div>
+</div>
+
+<h2 style="font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#64748b;margin-bottom:12px;">Requisitos Mínimos para Servicio</h2>
+<div class="req-grid">
+  ${reqItems.map(r=>`<div class="req-item" style="border-top-color:${r.c}"><div class="req-v" style="color:${r.c}">${r.v}</div><div class="req-pct">${pct(r.v)}%</div><div class="req-l">${r.l}</div></div>`).join("")}
+</div>
+
+<div class="charts">
+  <div class="chart" style="border-top-color:#3b82f6">
+    <h3>Personal por Ciudad (Top 8)</h3>
+    <div class="chart-sub">Distribución geográfica</div>
+    ${ciudades.map(([c,v])=>`<div class="bar-row"><div class="bar-label">${c}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(8,v/maxCiudad*100)}%;background:#3b82f6">${v}</div></div><div class="bar-n">${v}</div></div>`).join("")}
+  </div>
+  <div class="chart" style="border-top-color:#dc2626">
+    <h3>Estado de Exámenes</h3>
+    <div class="chart-sub">Vigencia exámenes preocupacionales</div>
+    ${[["VIGENTE",enriched.filter(w=>w.estadoExamen==="VIGENTE").length,"#16a34a"],
+       ["POR VENCER",enriched.filter(w=>w.estadoExamen==="POR VENCER").length,"#ca8a04"],
+       ["VENCIDO",enriched.filter(w=>w.estadoExamen==="VENCIDO").length,"#dc2626"],
+       ["SIN FECHA",enriched.filter(w=>w.estadoExamen==="SIN FECHA").length,"#94a3b8"]
+    ].map(([l,v,c])=>`<div class="bar-row"><div class="bar-label">${l}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.max(4,v/total*100)}%;background:${c}">${v}</div></div><div class="bar-n">${pct(v)}%</div></div>`).join("")}
+  </div>
+</div>
+
+<div class="footer">OPI Control · RHIO RENTAL · Sitio Collahuasi · ${now}</div>
+</body></html>`;
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([html],{type:"text/html;charset=utf-8"}));
+    a.download=`OPI_Dashboard_${new Date().toISOString().split("T")[0]}.html`;
+    a.click();
+    toast("✓ Dashboard HTML descargado");
+  }
+
   function downloadTemplate(){
     const cols=["RUT","NOMBRE","TELEFONO","CORREO","CIUDAD","DIRECCION","ESPECIALIDAD","NACIONALIDAD","AFP","SALUD","ESTADO_CIVIL","ESTADO_EXAMEN","EVAL_PSICOLOGICA","ESTADO_HABILITADO","TIPO_SERVICIO","INDUCCION_PLANTA","INDUCCION_CMDIC","INDUCCION_BLOQUEO","INDUCCION_PUERTO","INDUCCION_PROYECTO","OBSERVACION"];
     const ejemplo=["12345678-9","JUAN PEDRO GONZALEZ LOPEZ","+56 9 1234 5678","juan@correo.com","IQUIQUE","AV. EJEMPLO 123","OPERARIO DE ASEO","CHILENA","HABITAT","FONASA","SOLTERO","VIGENTE","APTO","HABILITADO PARA SUBIR","Parada de Planta","OK","OK","OK","NO ESTA","NO ESTA",""];
@@ -1574,7 +1702,11 @@ export default function App(){
                   <option value="ALL">Todos los servicios</option>
                   {SERVICIOS.map(s=><option key={s}>{s}</option>)}
                 </select>
-                <button className="btn btn-s" onClick={downloadCSV}>⬇ Descargar</button>
+                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                  <button className="btn btn-s" onClick={downloadCSV} title="Descargar vista actual como CSV">⬇ CSV Vista</button>
+                  <button className="btn btn-s" style={{background:"#16a34a",color:"#fff",border:"none"}} onClick={downloadExcel} title="Descargar base completa en Excel">📊 Excel Completo</button>
+                  <button className="btn btn-s" style={{background:"#3b82f6",color:"#fff",border:"none"}} onClick={downloadDashboardHTML} title="Descargar dashboard en HTML">📋 Dashboard HTML</button>
+                </div>
                 <button className="btn btn-s" onClick={downloadTemplate} title="Descargar plantilla CSV para carga masiva">📋 Plantilla</button>
                 {canEdit&&<>
                   <label className="btn btn-s" style={{cursor:"pointer"}} title="Importar trabajadores desde CSV">
@@ -1823,24 +1955,63 @@ export default function App(){
                     {w.direccion&&<div style={{marginTop:7}}><div className="dk">Dirección</div><div className="dv">{w.direccion}</div></div>}
                   </div>
                   <div className="dsec">
+                    <div className="dsec-t">Examen Preocupacional</div>
+                    <div style={{background:"#f8fafc",border:"1px solid var(--bor)",borderRadius:8,padding:"12px 16px",display:"flex",gap:24,flexWrap:"wrap",alignItems:"center"}}>
+                      <div>
+                        <div className="dk">Estado</div>
+                        <div style={{marginTop:4}}>{estadoBadge(w.estadoExamen)}</div>
+                      </div>
+                      <div>
+                        <div className="dk">Fecha Vencimiento</div>
+                        <div className="dv" style={{fontWeight:700,color:w.estadoExamen==="VIGENTE"?"#16a34a":w.estadoExamen==="VENCIDO"?"#dc2626":"var(--mu)"}}>
+                          {w.fechaVencimientoExamen||"Sin fecha registrada"}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="dk">Evaluación Psicológica</div>
+                        <div className="dv" style={{fontWeight:600}}>{w.evalPsicologica||"Sin registro"}</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="dsec">
                     <div className="dsec-t">Certificados y Cursos</div>
-                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:7}}>
-                      {[["Cert. Antecedentes",w.certificadoAntecedentes],["Primeros Auxilios",w.primerosAuxilios],["Extintores",w.manejoExtintores],["Energía Pot.",w.energiaPotenciales]].map(([k,v])=>{
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:8}}>
+                      {[
+                        {k:"Cert. Antecedentes", v:w.certificadoAntecedentes, fecha:w.fechaAntecedentes||""},
+                        {k:"Primeros Auxilios",  v:w.primerosAuxilios,        fecha:w.fechaPrimerosAuxilios||""},
+                        {k:"Manejo Extintores",  v:w.manejoExtintores,        fecha:w.fechaExtintores||""},
+                        {k:"Energía Potenciales",v:w.energiaPotenciales,      fecha:w.fechaEnergiaPotenciales||""},
+                      ].map(({k,v,fecha})=>{
                         const ok=v==="OK"; const venc=v==="VENCIDO"; const pend=v==="PENDIENTE"||v==="AGENDADO";
-                        return(<div className="iitem" key={k}><div className="iitem-l">{k}</div><span className={`badge ${ok?"gn":venc?"rd":pend?"yw":"bg"}`} style={{fontSize:9}}>{v||"FALTA"}</span></div>);
+                        return(
+                          <div key={k} style={{background:"#f8fafc",border:`1px solid ${ok?"#86efac":venc?"#fca5a5":pend?"#fde047":"var(--bor)"}`,borderRadius:7,padding:"10px 12px"}}>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                              <span style={{fontSize:11,fontWeight:600,color:"var(--tx)"}}>{k}</span>
+                              <span className={`badge ${ok?"gn":venc?"rd":pend?"yw":"bg"}`} style={{fontSize:9}}>{v||"FALTA"}</span>
+                            </div>
+                            {fecha&&<div style={{fontSize:10,color:"var(--mu)"}}>Vence: <b style={{color:venc?"#dc2626":"var(--tx)"}}>{fecha}</b></div>}
+                            {!fecha&&<div style={{fontSize:10,color:"#94a3b8"}}>Sin fecha registrada</div>}
+                          </div>
+                        );
                       })}
                     </div>
                   </div>
                   <div className="dsec">
                     <div className="dsec-t">Inducciones</div>
-                    <div className="itbl">
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:8}}>
                       {INDUCTIONES.map(k=>{
                         const val=(w.inductiones?.[k]||"NO ESTA").toString().trim();
-                        const ok=val==="OK"; const venc=val==="VENCIDO";
+                        const ok=val==="OK"; const venc=val==="VENCIDO"; const pend=val==="PENDIENTE"||val==="AGENDADO";
+                        // Try to get date from inductiones object extended fields
+                        const fechaKey=`fecha${k}`;
+                        const fecha=w.inductiones?.[fechaKey]||w[fechaKey]||"";
                         return(
-                          <div className="iitem" key={k}>
-                            <div className="iitem-l">{k.toUpperCase()}</div>
-                            <span className={`badge ${ok?"gn":venc?"rd":"bg"}`} style={{fontSize:9}}>{ok?"OK ✓":venc?"VENCIDO":"FALTA"}</span>
+                          <div key={k} style={{background:"#f8fafc",border:`1px solid ${ok?"#86efac":venc?"#fca5a5":pend?"#fde047":"var(--bor)"}`,borderRadius:7,padding:"10px 8px",textAlign:"center"}}>
+                            <div style={{fontSize:10,fontWeight:700,color:"var(--mu)",marginBottom:5,letterSpacing:.5}}>{k.toUpperCase()}</div>
+                            <span className={`badge ${ok?"gn":venc?"rd":pend?"yw":"bg"}`} style={{fontSize:9,marginBottom:4,display:"block"}}>{ok?"OK ✓":venc?"VENCIDO":pend?val:"FALTA"}</span>
+                            {fecha&&<div style={{fontSize:9,color:venc?"#dc2626":"var(--mu)",marginTop:3}}>Vence: <b>{fecha}</b></div>}
+                            {!fecha&&ok&&<div style={{fontSize:9,color:"#86efac",marginTop:3}}>Al día ✓</div>}
+                            {!fecha&&!ok&&<div style={{fontSize:9,color:"#94a3b8",marginTop:3}}>Sin fecha</div>}
                           </div>
                         );
                       })}
