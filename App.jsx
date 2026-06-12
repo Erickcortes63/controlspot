@@ -855,8 +855,7 @@ export default function App(){
         w.banco||"", w.tipoCuenta||"", w.numeroCuenta||""
       ].map(v=>`"${(v||"").toString().replace(/"/g,'""')}"`);
     });
-    const csv="﻿"+[cols.map(c=>`"${c}"`).join(","),...rows.map(r=>r.join(","))].join("
-");
+    const csv="\uFEFF"+[cols.map(c=>`"${c}"`).join(","),...rows.map(r=>r.join(","))].join("\n");
     const a=document.createElement("a");
     a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
     a.download=`OPI_Control_Completo_${new Date().toISOString().split("T")[0]}.csv`;
