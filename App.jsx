@@ -5,34 +5,36 @@ const SUPA_URL = "https://zrcogyjdwgjmavilydyo.supabase.co";
 const SUPA_KEY = "sb_publishable_1I8Ya1McHsS_8cFR0IEg0w_hNik0eVB";
 
 async function sbFetch(path, options={}){
-  const res = await fetch(SUPA_URL+path, {
-    ...options,
-    headers:{
-      "apikey": SUPA_KEY,
-      "Authorization": "Bearer "+SUPA_KEY,
-      "Content-Type": "application/json",
-      "Prefer": options.prefer||"",
-      ...(options.headers||{})
-    }
-  });
+  const headers={
+    "apikey": SUPA_KEY,
+    "Authorization": "Bearer "+SUPA_KEY,
+    "Content-Type": "application/json",
+  };
+  if(options.prefer) headers["Prefer"]=options.prefer;
+  if(options.headers) Object.assign(headers,options.headers);
+  const res = await fetch(SUPA_URL+path, {...options,headers});
   if(!res.ok){
     const err = await res.text();
-    throw new Error(err);
+    console.error("Supabase error:",res.status,err);
+    throw new Error(`${res.status}: ${err}`);
   }
   const text = await res.text();
-  return text ? JSON.parse(text) : [];
+  return text ? JSON.parse(text) : null;
 }
 
 async function dbGetWorkers(){ return await sbFetch("/rest/v1/workers?select=*&order=nombre.asc&limit=1000"); }
 async function dbSaveWorker(w){
   const row={
-    id:w.id, rut:w.rut, nombre:w.nombre, telefono:w.telefono, correo:w.correo,
-    ciudad:w.ciudad, direccion:w.direccion, especialidad:w.especialidad,
-    nacionalidad:w.nacionalidad, afp:w.afp, salud:w.salud,
-    estado_civil:w.estadoCivil, estado_examen:w.estadoExamen,
-    eval_psicologica:w.evalPsicologica, estado_habilitado:w.estadoHabilitado,
-    tipo_servicio:w.tipoServicio, obs:w.obs, motivo_accion:w.motivoAccion,
-    origen:w.origen, inductiones:w.inductiones, historial:w.historial||[],
+    id:Number(w.id)||Date.now(), rut:w.rut||"", nombre:w.nombre||"",
+    telefono:w.telefono||"", correo:w.correo||"",
+    ciudad:w.ciudad||"", direccion:w.direccion||"", especialidad:w.especialidad||"",
+    nacionalidad:w.nacionalidad||"", afp:w.afp||"", salud:w.salud||"",
+    estado_civil:w.estadoCivil||"", estado_examen:w.estadoExamen||"SIN FECHA",
+    eval_psicologica:w.evalPsicologica||"", estado_habilitado:w.estadoHabilitado||"NO HABILITADO",
+    tipo_servicio:w.tipoServicio||"", obs:w.obs||"", motivo_accion:w.motivoAccion||"",
+    origen:w.origen||"",
+    inductiones:w.inductiones||{Planta:"NO ESTA",CMDIC:"NO ESTA",Bloqueo:"NO ESTA",Puerto:"NO ESTA",Proyecto:"NO ESTA"},
+    historial:w.historial||[],
     banco:w.banco||"", tipo_cuenta:w.tipoCuenta||"", numero_cuenta:w.numeroCuenta||"",
     certificado_antecedentes:w.certificadoAntecedentes||"",
     primeros_auxilios:w.primerosAuxilios||"",
@@ -44,17 +46,49 @@ async function dbSaveWorker(w){
     observacion_seguimiento:w.observacionSeguimiento||""
   };
   return await sbFetch("/rest/v1/workers", {
-    method:"POST", prefer:"resolution=merge-duplicates",
-    headers:{"Prefer":"resolution=merge-duplicates"},
+    method:"POST",
+    prefer:"resolution=merge-duplicates",
+    headers:{"Prefer":"return=minimal,resolution=merge-duplicates"},
     body:JSON.stringify(row)
+  });
+}
+
+// Bulk insert many workers at once (much faster than one by one)
+async function dbSaveManyWorkers(workers){
+  const rows = workers.map(w=>({
+    id:Number(w.id)||Date.now(), rut:w.rut||"", nombre:w.nombre||"",
+    telefono:w.telefono||"", correo:w.correo||"",
+    ciudad:w.ciudad||"", direccion:w.direccion||"", especialidad:w.especialidad||"",
+    nacionalidad:w.nacionalidad||"", afp:w.afp||"", salud:w.salud||"",
+    estado_civil:w.estadoCivil||"", estado_examen:w.estadoExamen||"SIN FECHA",
+    eval_psicologica:w.evalPsicologica||"", estado_habilitado:w.estadoHabilitado||"NO HABILITADO",
+    tipo_servicio:w.tipoServicio||"", obs:w.obs||"", motivo_accion:w.motivoAccion||"",
+    origen:w.origen||"",
+    inductiones:w.inductiones||{Planta:"NO ESTA",CMDIC:"NO ESTA",Bloqueo:"NO ESTA",Puerto:"NO ESTA",Proyecto:"NO ESTA"},
+    historial:w.historial||[],
+    banco:w.banco||"", tipo_cuenta:w.tipoCuenta||"", numero_cuenta:w.numeroCuenta||"",
+    certificado_antecedentes:w.certificadoAntecedentes||"",
+    primeros_auxilios:w.primerosAuxilios||"",
+    manejo_extintores:w.manejoExtintores||"",
+    energia_potenciales:w.energiaPotenciales||"",
+    fecha_vencimiento_examen:w.fechaVencimientoExamen||"",
+    bloqueado:w.bloqueado||false,
+    motivo_bloqueo:w.motivoBloqueo||"",
+    observacion_seguimiento:w.observacionSeguimiento||""
+  }));
+  return await sbFetch("/rest/v1/workers", {
+    method:"POST",
+    headers:{"Prefer":"return=minimal,resolution=merge-duplicates"},
+    body:JSON.stringify(rows)
   });
 }
 async function dbDeleteWorker(id){ return await sbFetch(`/rest/v1/workers?id=eq.${id}`,{method:"DELETE"}); }
 async function dbGetUsers(){ return await sbFetch("/rest/v1/users?select=*"); }
 async function dbSaveUser(u){
   return await sbFetch("/rest/v1/users",{
-    method:"POST", headers:{"Prefer":"resolution=merge-duplicates"},
-    body:JSON.stringify({id:u.id,username:u.username,password:u.password,nombre:u.nombre,rol:u.rol})
+    method:"POST",
+    headers:{"Prefer":"return=minimal,resolution=merge-duplicates"},
+    body:JSON.stringify({id:Number(u.id),username:u.username,password:u.password,nombre:u.nombre,rol:u.rol})
   });
 }
 async function dbDeleteUser(id){ return await sbFetch(`/rest/v1/users?id=eq.${id}`,{method:"DELETE"}); }
@@ -456,7 +490,6 @@ export default function App(){
       try{
         const rows = await dbGetWorkers();
         if(rows && rows.length>0){
-          // Map DB columns back to app format
           const mapped = rows.map(r=>({
             id:r.id, rut:r.rut, nombre:r.nombre, telefono:r.telefono,
             correo:r.correo, ciudad:r.ciudad, direccion:r.direccion,
@@ -479,15 +512,16 @@ export default function App(){
           }));
           setWorkers(mapped);
         } else {
-          // First time: upload seed data to Supabase
+          // Primera vez: sube todos de una vez (bulk insert)
           setWorkers(FULL_DATA);
-          toast("Cargando base de datos inicial...");
-          for(const w of FULL_DATA){
-            try{ await dbSaveWorker(w); }catch{}
+          try{
+            await dbSaveManyWorkers(FULL_DATA);
+            toast("✓ Base de datos sincronizada con Supabase");
+          }catch(e){
+            console.error("Bulk insert error:",e);
           }
-          toast("Base de datos sincronizada con Supabase ✓");
         }
-      }catch(e){ setWorkers(FULL_DATA); }
+      }catch(e){ console.error("Load workers error:",e); setWorkers(FULL_DATA); }
 
       try{
         const urows = await dbGetUsers();
